@@ -1,0 +1,19 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Připojit AZ Router",
+        "description": "Zadej údaje pro připojení k webovému rozhraní AZ Routeru.",
+        "data": {
+          "host": "Host nebo URL",
+          "username": "Uživatel",
+          "password": "Heslo",
+          "verify_ssl": "Ověřovat SSL"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nelze se připojit nebo špatné přihlašovací údaje."
+    }
+  }
+}

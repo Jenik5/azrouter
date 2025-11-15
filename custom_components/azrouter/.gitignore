@@ -1,0 +1,66 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.egg-info/
+.eggs/
+.build/
+dist/
+build/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+*.prof
+*.pstats
+
+# --- Virtual env / tools ---
+.venv/
+venv/
+.env
+.poetry/
+pip-wheel-metadata/
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+*.code-workspace
+.DS_Store
+Thumbs.db
+
+# --- Home Assistant runtime (když náhodou commituješ z kořene HA configu) ---
+# Tyhle soubory vznikají při běhu HA a do repa nepatří.
+.homeassistant/
+*.db
+*.db-shm
+*.db-wal
+home-assistant_v2.db
+home-assistant.log
+home-assistant.log.*
+storage/
+.storage/
+.cloud/
+deps/
+tts/
+custom_components/__pycache__/
+.custom_components/__pycache__/
+
+# --- Test/fixtures ---
+tests/__pycache__/
+tests/.pytest_cache/
+tests/tmp/
+.tmp/
+.cache/
+
+# --- Node (pokud náhodou použiješ frontend tooling) ---
+node_modules/
+npm-debug.log*
+yarn.lock
+pnpm-lock.yaml
+
+# --- Misc ---
+*.swp
+*.swo
+*.orig
+*.bak

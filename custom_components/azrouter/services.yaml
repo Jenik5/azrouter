@@ -1,0 +1,22 @@
+set_master_boost:
+  name: Set master boost
+  description: Enable or disable master boost on AZ Router
+  fields:
+    enabled:
+      required: true
+      example: true
+      selector:
+        boolean:
+
+set_device_boost:
+  name: Set device boost
+  description: Enable or disable boost for a specific AZ Router device
+  target:
+    device:
+      integration: azrouter
+  fields:
+    enabled:
+      required: true
+      example: true
+      selector:
+        boolean:

@@ -1,0 +1,19 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to AZ Router",
+        "description": "Enter connection details for your AZ Router web interface.",
+        "data": {
+          "host": "Host or URL",
+          "username": "Username",
+          "password": "Password",
+          "verify_ssl": "Verify SSL"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot connect or invalid credentials."
+    }
+  }
+}
