@@ -1,52 +1,77 @@
-## 🇬🇧 AZ Router – Home Assistant Integration
-*(🇨🇿 For Czech version scroll down or click here → [Czech README](#-česky---az-router---home-assistant-integrace))*
+# <img src="https://raw.githubusercontent.com/Jenik5/azrouter/main/custom_components/azrouter/icons/logo.png" height="60" />  
+# AZ Router – Home Assistant Integration
 
-Custom integration for Home Assistant providing native support for devices from the **A-Z Router** family:
+[![HACS Default](https://img.shields.io/badge/HACS-Default-blue.svg)](https://hacs.xyz)
+![Version](https://img.shields.io/github/v/release/Jenik5/azrouter)
+![Downloads](https://img.shields.io/github/downloads/Jenik5/azrouter/total)
+![License](https://img.shields.io/github/license/Jenik5/azrouter)
+
+*(🇨🇿 For Czech version click here → [Czech README](#-česky---az-router---home-assistant-integrace))*
+
+Native Home Assistant integration for devices from the **A-Z Router** ecosystem:
 
 - **AZ Router Smart Master**
 - **AZ Router Smart Slave**
 - **AZ Charger Cube**
-- (and other compatible devices that use the same API)
+- and other compatible A-Z devices using the same API
 
-This integration communicates directly with the device API, exposes sensors, entities, and services, and creates a unified view of all devices in the system.
+This project aims to provide a clean, reliable API-based integration with properly structured entities, device registry entries, and services.
 
 ---
 
 ## 🔧 Current Features
 
 ### ✔ Master & Device Data
-- Fetching and parsing of all master data (`all_data`)
-- Per-device data from the device API
-- Automatic refresh using DataUpdateCoordinator
+- Parsing of all master data (`all_data`)
+- Data for each device via device API
+- Automatic refresh via DataUpdateCoordinator
 
 ### ✔ Entities
-- Sensors (power, temperatures, currents, state, etc.)
-- Switches (e.g., Boost)
-- Numbers (target temperature, target power — where relevant)
+- Sensors (power, temperature, current, operational states…)
+- Switches (Boost)
+- Numbers (target power, target temperature — depending on device type)
 
 ### ✔ Services
 - `azrouter.set_master_boost`
-- `azrouter.set_device_boost` — with **Device Picker** support in HA
+- `azrouter.set_device_boost` — fully supports HA Device Picker
 
-### ✔ Multiple device support
-Each device is registered with its own device entry in Home Assistant device registry.
-
----
-
-## 🧩 Planned Improvements (Conservative Roadmap)
-
-The integration will be expanded **only** in these limited and realistic directions:
-
-- Adding more sensors, switches or number entities where they make sense
-- Adding additional services when the API supports them
-- Supporting more A-Z devices **if users provide JSON dumps** of those devices  
-  (to ensure correct entity mapping)
-
-No automation logic, no cloud services, no energy algorithms — only API-based HA entities.
+### ✔ Multi-Device Support
+Each A-Z device appears as a separate “Device” in Home Assistant.
 
 ---
 
-## 📥 Installation (Manual)
+## 🛠 Configuration
+
+During integration setup, enter:
+
+- **Host or URL:**  
+  `http://192.168.xxx.xxx`
+
+- **User:**  
+  `web_ui_username`
+
+- **Password:**  
+  `web_ui_password`
+
+These are the same credentials you use to log into the device’s web interface.
+
+---
+
+## 📦 Installation (via HACS)
+
+The integration is now directly available in **HACS**.
+
+Steps:
+
+1. Open **HACS → Integrations**
+2. Search for **“AZ Router”**
+3. Install
+4. Restart Home Assistant
+5. Go to **Settings → Devices & Services** and add the integration
+
+---
+
+## 📥 Manual Installation
 
 1. Download this repository as ZIP  
 2. Extract into:
@@ -56,34 +81,29 @@ No automation logic, no cloud services, no energy algorithms — only API-based 
 ```
 
 3. Restart Home Assistant  
-4. Go to *Settings → Integrations → Add Integration*  
-5. Search for **AZ Router**
+4. Add the integration via Settings
 
 ---
 
-## 📦 Installation via HACS (Custom Repository)
+## 🧩 Future Improvements (Conservative Roadmap)
 
-Until the integration is added to the official HACS index, it can be installed via custom repo:
+We intentionally keep the scope narrow:
 
-1. HACS → Integrations  
-2. Menu (⋯) → **Custom repositories**  
-3. URL:  
-   ```
-   https://github.com/<your-username>/<your-repo>
-   ```
-4. Category: **Integration**  
-5. Add → Install
+- Adding more sensors, switches, or numbers where useful  
+- Adding more services when supported by the device API  
+- Support for new A-Z devices **if users provide JSON dumps**  
+
+No complex energy algorithms or automation logic — just clean HA entities.
 
 ---
 
-## 🧪 Looking for Beta Testers
+## 🧪 Beta Testing
 
-If you use any A-Z Router compatible device, please help test:
+You can help by:
 
-- Report issues in GitHub
-- Include logs (debug mode recommended)
-- If you have a **different A-Z device model**, send its JSON  
-  → we can add proper support quickly
+- Reporting issues on GitHub  
+- Providing debug logs  
+- Sending JSON dumps from unsupported A-Z devices  
 
 ---
 
@@ -91,49 +111,75 @@ If you use any A-Z Router compatible device, please help test:
 
 # 🇨🇿 Česky – AZ Router – Home Assistant Integrace
 
-Integrační balíček pro Home Assistant určený pro zařízení rodiny **A-Z Router**:
+![HACS](https://img.shields.io/badge/HACS-Default-blue.svg)
+![Version](https://img.shields.io/github/v/release/Jenik5/azrouter)
+![Downloads](https://img.shields.io/github/downloads/Jenik5/azrouter/total)
+![License](https://img.shields.io/github/license/Jenik5/azrouter)
 
-- AZ Router Smart Master
-- AZ Router Smart Slave
-- AZ Charger Cube
-- a případně další zařízení se stejným API
+Nativní integrace pro zařízení rodiny **A-Z Router**:
 
-Integrace zajišťuje komunikaci s API, vytvoření senzorů, entit a služeb a sjednocené zobrazení všech zařízení.
+- AZ Router Smart Master  
+- AZ Router Smart Slave  
+- AZ Charger Cube  
+- a další zařízení používající stejné API  
+
+Integrace poskytuje stabilní propojení s API zařízení a vystavuje správné entity, služby a záznamy v Device Registry.
 
 ---
 
 ## 🔧 Co integrace umí
 
-### ✔ Data Master jednotky
-- Načítání kompletních dat (`all_data`)
-- Automatický refresh přes DataUpdateCoordinator
+### ✔ Načítání dat
+- kompletní data z Master jednotky (`all_data`)
+- data jednotlivých zařízení
+- automatická aktualizace přes DataUpdateCoordinator
 
-### ✔ Přehled zařízení
-- Každé zařízení vystaveno jako samostatné „Device“ v Home Assistantu
-- Senzory, položky Number a přepínače Switch podle typu jednotky
+### ✔ Entity
+- senzory (výkon, teploty, proudy, stav…)
+- switche (např. Boost)
+- čísla (cílový výkon, cílová teplota – dle jednotky)
 
-### ✔ Ovládací služby
+### ✔ Služby
 - `azrouter.set_master_boost`
-- `azrouter.set_device_boost` – s výběrem zařízení z Device Pickeru
+- `azrouter.set_device_boost` – včetně **Device Pickeru**
+
+### ✔ Podpora více zařízení
+Každé zařízení se objeví jako samostatné „Device“ v Home Assistantu.
 
 ---
 
-## 🧩 Možnosti rozšíření
+## 🛠 Základní konfigurace
 
-Držíme se jen reálných a jednoduchých rozšíření:
+Při nastavování integrace zadejte:
 
-- doplnění dalších senzorů / switchů / number entit
-- doplnění dalších služeb, pokud se objeví v API
-- podpora nových jednotek **pokud uživatelé poskytnou JSON**
-  (výpisy z `/api/v1/…`)
+- **Host nebo URL:**  
+  `http://192.168.xxx.xxx`
 
-Žádná magie, žádné složité řízení energie — jen čistá integrace API → Home Assistant.
+- **Uživatel:**  
+  `web_ui_username`
+
+- **Heslo:**  
+  `web_ui_password`
+
+Jsou to stejné údaje, jaké používáte pro přístup do webového rozhraní A-Z Routeru.
 
 ---
 
-## 📥 Instalace (manuálně)
+## 📦 Instalace přes HACS
 
-1. Stáhněte ZIP repozitáře  
+Integrace je dostupná **přímo v HACS**:
+
+1. Otevřete **HACS → Integrace**
+2. Vyhledejte **„AZ Router“**
+3. Instalujte
+4. Restartujte HA
+5. Přidejte integraci přes **Nastavení → Zařízení a služby**
+
+---
+
+## 📥 Manuální instalace
+
+1. Stáhněte ZIP  
 2. Rozbalte do:
 
 ```
@@ -141,27 +187,27 @@ Držíme se jen reálných a jednoduchých rozšíření:
 ```
 
 3. Restartujte Home Assistant  
-4. V Nastavení → Integrace přidejte **AZ Router**
+4. Přidejte integraci
 
 ---
 
-## 📦 Instalace přes HACS (Custom Repository)
+## 🧩 Možnosti rozšíření
 
-1. Otevřete HACS → Integrations  
-2. Vpravo nahoře: Custom repositories  
-3. Vložte adresu repozitáře  
-4. Category: **Integration**  
-5. Instalovat
+Držíme se realistického rozsahu:
+
+- doplnění dalších senzorů / switchů / number entit  
+- doplnění dalších služeb (pokud je podporuje API)  
+- podpora nových jednotek **pokud uživatelé poskytnou JSON výpis**  
 
 ---
 
-## 🧪 Hledáme testery
+## 🧪 Testování
 
-Pomůže nám:
+Pomůžete nám, pokud:
 
-- nahlášení chyb
-- zaslání logů s debug výstupem
-- zaslání JSON výpisů z neznámých jednotek (abychom je mohli přidat)
+- nahlásíte chyby  
+- pošlete logy  
+- pošlete JSON výpisy z neznámých jednotek  
 
 ---
 
