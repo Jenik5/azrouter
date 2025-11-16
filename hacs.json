@@ -2,5 +2,5 @@
     "name": "A-Z Router",
     "render_readme": true,
     "domains": ["azrouter"],
-    "homeassistant": "2024.0.0"
+    "homeassistant": "2024.1.0"
 }
