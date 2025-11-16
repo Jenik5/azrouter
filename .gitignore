@@ -3,3 +3,6 @@
 !/custom_components/
 !/custom_components/azrouter/
 !/custom_components/azrouter/**
+!/README.md
+!/LICENSE
+!/hacs.json
