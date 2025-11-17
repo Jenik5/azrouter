@@ -1,0 +1,203 @@
+:root {
+    --az-primary: #0b3e70;      /* tmavší modrá */
+    --az-primary-light: #12518f;
+    --az-accent: #f28b2b;       /* oranžový akcent */
+    --az-bg: #f3f5f8;
+    --az-card-bg: #ffffff;
+    --az-border: #dde2ea;
+    --az-text: #1f2833;
+    --az-muted: #6c7a89;
+    --az-radius-lg: 10px;
+    --az-radius-md: 6px;
+    --az-shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* základ stránky */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background: radial-gradient(circle at top, #f9fbff 0, #f3f5f8 45%, #e7ecf5 100%);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--az-text);
+    line-height: 1.6;
+}
+
+/* horní lišta s logem (volitelné) */
+
+.site-header {
+    background: #ffffffcc;
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(0,0,0,0.04);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.site-header-inner {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 0.5rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.site-logo {
+    height: 38px;
+    display: block;
+}
+
+.site-title {
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--az-muted);
+}
+
+/* obsah stránky */
+
+.page {
+    max-width: 980px;
+    margin: 1.5rem auto 2.5rem;
+    padding: 1.5rem 1.5rem 2.5rem;
+    background: var(--az-card-bg);
+    border-radius: 16px;
+    box-shadow: var(--az-shadow-soft);
+    border: 1px solid rgba(255,255,255,0.7);
+}
+
+/* záhlaví návodu */
+
+.page-header {
+    border-bottom: 1px solid var(--az-border);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+    margin: 0 0 0.4rem;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--az-primary);
+}
+
+.page-subtitle {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--az-muted);
+}
+
+/* kroková struktura */
+
+.step {
+    margin-bottom: 2.2rem;
+    padding: 1.25rem 1.1rem 1.4rem;
+    border-radius: var(--az-radius-lg);
+    border: 1px solid var(--az-border);
+    background: linear-gradient(135deg, #ffffff, #f9fbff);
+}
+
+.step h2 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--az-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.step h2::before {
+    content: "●";
+    font-size: 0.7rem;
+    color: var(--az-accent);
+}
+
+.step p {
+    margin: 0.25rem 0 0.75rem;
+}
+
+.step ul {
+    margin: 0.25rem 0 0.75rem;
+    padding-left: 1.1rem;
+}
+
+.step li + li {
+    margin-top: 0.25rem;
+}
+
+/* zvýraznění textu */
+
+code {
+    background: #f0f3f8;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+    font-family: "Consolas", "SFMono-Regular", Menlo, Monaco, monospace;
+    border: 1px solid #e0e6f0;
+}
+
+/* obrázky */
+
+.step img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--az-radius-md);
+    border: 1px solid var(--az-border);
+    margin: 0.35rem 0 0.9rem;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.04);
+}
+
+/* drobné prvky */
+
+.badge {
+    display: inline-block;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.75rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    background: rgba(11, 62, 112, 0.06);
+    color: var(--az-primary);
+}
+
+/* odkazové prvky (např. budoucí tlačítko) */
+
+a {
+    color: var(--az-primary-light);
+    text-decoration: none;
+}
+
+a:hover {
+    color: var(--az-accent);
+    text-decoration: underline;
+}
+
+/* responzivní drobnosti */
+
+@media (max-width: 720px) {
+    .site-header-inner {
+        padding-inline: 1rem;
+    }
+
+    .page {
+        margin: 1rem;
+        padding: 1rem 1rem 1.8rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.35rem;
+    }
+
+    .step {
+        padding: 1rem 0.85rem 1.1rem;
+    }
+}
