@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <title>A-Z Router – Instalace a základní konfigurace</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+        .page {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 3rem;
+            background: #ffffff;
+        }
+        h1, h2, h3 {
+            font-weight: 600;
+        }
+        h1 {
+            margin-top: 0;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin: 0.75rem 0 1.5rem;
+        }
+        .step {
+            margin-bottom: 2.5rem;
+        }
+        ul {
+            padding-left: 1.3rem;
+        }
+        code {
+            background: #f0f0f0;
+            padding: 0.1rem 0.3rem;
+            border-radius: 3px;
+            font-size: 0.95em;
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <h1>A-Z Router – instalace a základní konfigurace</h1>
+
+    <div class="step">
+        <h2>Stažení z HACS</h2>
+        <p>
+            V HACS vyhledej integraci <strong>„A-Z Router“</strong> a nainstaluj ji přímo ze Store.
+            Pokud není dostupná, lze ji přidat ručně přes vlastní repozitář.
+        </p>
+        <img src="img/azrouter_hacs_01.png" alt="Integrace A-Z Router v HACS Store">
+        <img src="img/azrouter_hacs_02.png" alt="Detail integrace A-Z Router v HACS">
+    </div>
+
+    <div class="step">
+        <h2>Alternativní instalace</h2>
+        <p>
+            Pokud se integrace neobjeví ve Store, je možné ji přidat ručně přes sekci
+            <strong>Repositáře</strong> v HACS – přidáním GitHub repozitáře, ve kterém je integrace
+            <code>azrouter</code> umístěna.
+        </p>
+        <img src="img/azrouter_hacs_03.png" alt="Přidání vlastního repozitáře v HACS">
+    </div>
+
+    <div class="step">
+        <h2>Přidání integrace v Home Assistantu</h2>
+        <p>
+            Po instalaci integrace z HACS ji je potřeba přidat do Home Assistantu:
+        </p>
+        <ul>
+            <li>Přejdi do <strong>Nastavení → Zařízení a služby</strong>.</li>
+            <li>Vpravo dole zvol <strong>Přidat integraci</strong>.</li>
+            <li>Vyhledej integraci <strong>„A-Z Router“</strong> a potvrď přidání.</li>
+        </ul>
+        <img src="img/azrouter_hacs_04.png" alt="Přidání integrace v Zařízení a služby">
+    </div>
+
+    <div class="step">
+        <h2>Základní konfigurace</h2>
+        <p>
+            Po zvolení integrace se zobrazí dialog základní konfigurace. Vyplň následující údaje:
+        </p>
+        <ul>
+            <li>
+                <strong>Host or URL</strong> – adresa AZ Routeru, např.<br>
+                <code>http://192.168.xxx.xxx</code>
+            </li>
+            <li>
+                <strong>User</strong> – uživatelské jméno z webového rozhraní AZ Routeru
+            </li>
+            <li>
+                <strong>Password</strong> – heslo z webového rozhraní AZ Routeru
+            </li>
+        </ul>
+        <p>
+            Po vyplnění údajů potvrď konfiguraci. Home Assistant se pokusí k AZ Routeru připojit a načíst dostupná zařízení.
+        </p>
+        <img src="img/azrouter_hacs_05.png" alt="Dialog základní konfigurace integrace A-Z Router">
+    </div>
+
+    <div class="step">
+        <h2>Nalezená zařízení</h2>
+        <p>
+            Po úspěšné konfiguraci se zobrazí seznam nalezených zařízení odpovídajících jednotlivým výstupům AZ Routeru.
+            Každému zařízení můžeš přiřadit oblast (místnost), nebo to udělat později v detailu zařízení.
+        </p>
+        <img src="img/azrouter_hacs_06.png" alt="Seznam nalezených zařízení A-Z Routeru a přiřazení oblastí">
+    </div>
+
+    <div class="step">
+        <h2>Nová integrace v seznamu</h2>
+        <p>
+            Po dokončení instalace a základního nastavení se integrace
+            <strong>A-Z Router</strong> zobrazí v seznamu nainstalovaných integrací v sekci
+            <strong>Nastavení → Zařízení a služby</strong>.
+        </p>
+        <img src="img/azrouter_hacs_07.png" alt="Integrace A-Z Router v seznamu integrací">
+    </div>
+
+    <div class="step">
+        <h2>Detail integrace</h2>
+        <p>
+            V detailu integrace uvidíš seznam vytvořených zařízení a jejich stav.
+            Odtud se můžeš prokliknout na jednotlivá zařízení (např. bojler, wallbox, apod.).
+        </p>
+        <img src="img/azrouter_hacs_08.png" alt="Detail integrace A-Z Router a seznam zařízení">
+    </div>
+
+    <div class="step">
+        <h2>Master zařízení</h2>
+        <p>
+            <strong>Master zařízení</strong> integrace A-Z Router obsahuje obecné senzory,
+            diagnostické informace a přehled celkového stavu AZ Routeru.
+        </p>
+        <img src="img/azrouter_hacs_09.png" alt="Master zařízení integrace A-Z Router">
+    </div>
+
+    <div class="step">
+        <h2>Zařízení „Power“ (Bojler)</h2>
+        <p>
+            Zařízení <strong>Power</strong> (např. bojler) obsahuje všechny ovladače a senzory
+            související s daným výkonovým výstupem – například přepínání režimů, povolení ohřevu,
+            aktuální příkon a další údaje.
+        </p>
+        <img src="img/azrouter_hacs_10.png" alt="Zařízení Power – bojler">
+    </div>
+
+    <div class="step">
+        <h2>Zařízení „Charger“ (Wallbox)</h2>
+        <p>
+            Zařízení <strong>Charger</strong> (wallbox) obsahuje ovládací prvky nabíjení,
+            senzory výkonu a další parametry týkající se nabíjení elektromobilu.
+        </p>
+        <img src="img/azrouter_hacs_11.png" alt="Zařízení Charger – wallbox">
+    </div>
+
+</div>
+</body>
+</html>

@@ -2,10 +2,10 @@
   "domain": "azrouter",
   "name": "A-Z Router",
   "version": "0.9.0",
-  "documentation": "https://github.com/Jenik5/azrouter",
+  "documentation": "https://github.com/Jenik5/azrouter/blob/main/docs/installation.html",
   "issue_tracker": "https://github.com/Jenik5/azrouter/issues",
   "codeowners": [
-    "@jan-pruha",
+    "@Jenik5",
     "@chatgpt"
   ],
   "requirements": [],
