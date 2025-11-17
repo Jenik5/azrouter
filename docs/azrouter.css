@@ -31,10 +31,11 @@ body {
 
 /* horní lišta s logem (volitelné) */
 
+/* Horní tmavý banner */
 .site-header {
-    background: #ffffffcc;
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid rgba(0,0,0,0.04);
+    background: #1f2030; /* tmavá z A-Z Traders */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 0.4rem 0;
     position: sticky;
     top: 0;
     z-index: 10;
@@ -43,22 +44,23 @@ body {
 .site-header-inner {
     max-width: 980px;
     margin: 0 auto;
-    padding: 0.5rem 1.5rem;
+    padding: 0.3rem 1.5rem;
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.9rem;
 }
 
 .site-logo {
-    height: 38px;
+    height: 48px;
+    width: auto;
     display: block;
 }
 
 .site-title {
-    font-size: 0.95rem;
+    font-size: 1.05rem;
     text-transform: uppercase;
-    letter-spacing: 0.09em;
-    color: var(--az-muted);
+    letter-spacing: 0.10em;
+    color: #e6e8ee;   /* světle šedá – dobře čitelná na tmavém pozadí */
 }
 
 /* obsah stránky */
