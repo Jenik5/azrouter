@@ -32,6 +32,20 @@
     "set_device_type_1_temperatures": {
       "name": "Smart Slave – Temperatures",
       "description": "Set target and/or Boost temperatures for Smart Slave devices (deviceType=1)."
+    },
+    "set_device_type_4_manual_power": {
+      "name": "Wallbox – Manual Charging Power",
+      "description": "Set the manual charging power limit for Wallbox devices (deviceType=4). The allowed limit depends on the installed circuit breaker.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "Select a Wallbox device (deviceType=4)."
+        },
+        "manual_power": {
+          "name": "Manual Charging Power (W)",
+          "description": "Charging power in watts. The valid range is automatically checked based on the device’s circuit breaker."
+        }
+      }
     }
   }
 }

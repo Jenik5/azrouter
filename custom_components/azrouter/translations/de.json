@@ -32,6 +32,21 @@
     "set_device_type_1_temperatures": {
       "name": "Smart Slave – Temperaturen",
       "description": "Ziel- und/oder Boost-Temperatur für Smart-Slave-Geräte (deviceType=1) einstellen."
+    },
+    "set_device_type_4_manual_power": {
+      "name": "Wallbox – Manueller Ladestrom",
+      "description": "Setzt die manuelle Ladeleistung für Wallbox-Geräte (deviceType=4). Die zulässige Leistung hängt vom installierten Sicherungswert ab.",
+      "fields": {
+        "device_id": {
+          "name": "Gerät",
+          "description": "Wähle ein Wallbox-Gerät (deviceType=4)."
+        },
+        "manual_power": {
+          "name": "Manuelle Ladeleistung (W)",
+          "description": "Ladeleistung in Watt. Der gültige Bereich wird automatisch basierend auf dem Sicherungswert überprüft."
+        }
+      }
     }
   }
 }
+

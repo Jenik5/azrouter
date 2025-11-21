@@ -32,6 +32,20 @@
     "set_device_type_1_temperatures": {
       "name": "Smart Slave – Teploty",
       "description": "Nastaví cílovou a/nebo Boost teplotu pro zařízení Smart Slave (deviceType=1)."
+    },
+    "set_device_type_4_manual_power": {
+      "name": "Wallbox – Manuální nabíjecí výkon",
+      "description": "Nastaví limit manuálního nabíjecího výkonu pro zařízení Wallbox (deviceType=4). Maximální povolený výkon závisí na hodnotě jističe.",
+      "fields": {
+        "device_id": {
+          "name": "Zařízení",
+          "description": "Vyber zařízení typu Wallbox (deviceType=4)."
+        },
+        "manual_power": {
+          "name": "Manuální výkon (W)",
+          "description": "Nabíjecí výkon ve wattech. Platný rozsah je automaticky ověřen podle hodnoty jističe."
+        }
+      }
     }
   }
 }

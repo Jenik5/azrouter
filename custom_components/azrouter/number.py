@@ -15,12 +15,15 @@ import copy
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.exceptions import HomeAssistantError
+
 
 from .const import DOMAIN
 from .api import AzRouterClient
 
 from .devices.master.number import create_master_numbers
 from .devices.device_type_1.number import create_device_type_1_numbers
+from .devices.device_type_4.number import create_device_type_4_numbers
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,6 +55,16 @@ async def async_setup_entry(
     # --- DEVICE_TYPE_1 NUMBER ENTITIES (boiler) ---
     entities.extend(
         create_device_type_1_numbers(
+            client=client,
+            coordinator=coordinator,
+            entry=entry,
+            devices=devices_list,
+        )
+    )
+
+    # --- DEVICE_TYPE_4 NUMBER ENTITIES (boiler) ---
+    entities.extend(
+        create_device_type_4_numbers(
             client=client,
             coordinator=coordinator,
             entry=entry,
@@ -284,5 +297,165 @@ async def async_service_set_device_type_1_temperatures(
             device_id,
             exc,
         )
+
+# ----------------------------------------------------------------------
+#  SERVICE HELPER – device_type_4 manual charging power (mode id=1)
+# ----------------------------------------------------------------------
+
+DEVICE_TYPE_4 = "4"
+
+# Same breaker → max power mapping as in DeviceType4ManualChargingPowerNumber
+CB_TO_MAX_POWER = {
+    10: 2300,
+    16: 3700,
+    24: 5500,
+    32: 7400,
+}
+MANUAL_MIN_POWER_W = 1400
+
+
+async def async_service_set_device_type_4_manual_power(
+    *,
+    hass,
+    client: AzRouterClient,
+    coordinator,
+    device_id: int,
+    manual_power: int | None,
+) -> None:
+    """Service helper: set manual charging power (mode id=1) for device_type_4."""
+
+    if manual_power is None:
+        raise HomeAssistantError(
+            "No power value specified for Charger manual power service."
+        )
+
+    data = coordinator.data or {}
+    devices = data.get("devices") or []
+
+    root: Dict[str, Any] | None = None
+    for dev in devices:
+        try:
+            if (
+                str(dev.get("deviceType")) == DEVICE_TYPE_4
+                and int(dev.get("common", {}).get("id", -1)) == int(device_id)
+            ):
+                root = dev
+                break
+        except Exception:
+            continue
+
+    if not root:
+        _LOGGER.warning(
+            "Service set_device_type_4_manual_power: device id=%s not found in coordinator data",
+            device_id,
+        )
+        raise HomeAssistantError(
+            "Selected device is not an AZ Charger (deviceType=4) or is no longer available."
+        )
+
+    # optional, když chceš ještě explicitně hlídat deviceType:
+    dev_type = str(root.get("deviceType"))
+    if dev_type != DEVICE_TYPE_4:
+        _LOGGER.warning(
+            "Service set_device_type_4_manual_power: device id=%s has deviceType=%s, expected 4",
+            device_id,
+            dev_type,
+        )
+        raise HomeAssistantError(
+            "This service can only be used with AZ Charger devices (deviceType=4)."
+        )
+
+    charge = root.get("charge", {}) or {}
+    cb_value = int(charge.get("circuitBreaker", 16))
+
+    max_limit = CB_TO_MAX_POWER.get(cb_value)
+    if max_limit is None:
+        max_limit = max(CB_TO_MAX_POWER.values())
+
+    try:
+        value = int(manual_power)
+    except Exception:
+        _LOGGER.warning(
+            "Service set_device_type_4_manual_power: invalid value '%s' for device %s",
+            manual_power,
+            device_id,
+        )
+        raise HomeAssistantError(
+            f"Invalid power value '{manual_power}'. Please enter a number in watts."
+        )
+
+    # clamp do [MANUAL_MIN_POWER_W, max_limit]
+    if value < MANUAL_MIN_POWER_W:
+        _LOGGER.debug(
+            "Service set_device_type_4_manual_power: requested %s W below minimum, clamped to %s W",
+            value,
+            MANUAL_MIN_POWER_W,
+        )
+        value = MANUAL_MIN_POWER_W
+    if value > max_limit:
+        _LOGGER.debug(
+            "Service set_device_type_4_manual_power: requested %s W above max %s W, clamped",
+            value,
+            max_limit,
+        )
+        value = max_limit
+
+    dev_payload = copy.deepcopy(root)
+
+    settings_list = dev_payload.get("settings") or []
+    if not isinstance(settings_list, list) or not settings_list:
+        _LOGGER.warning(
+            "Service set_device_type_4_manual_power: no settings found for device %s",
+            device_id,
+        )
+        raise HomeAssistantError(
+            "Device has no settings section – cannot update manual charging power."
+        )
+
+    changed = False
+
+    for entry in settings_list:
+        charge_settings = entry.setdefault("charge", {})
+        mode_list = charge_settings.get("mode") or []
+
+        if not isinstance(mode_list, list):
+            continue
+
+        for mode in mode_list:
+            try:
+                if int(mode.get("id", -1)) == 1:
+                    mode["power"] = int(value)
+                    changed = True
+            except Exception:
+                continue
+
+    if not changed:
+        _LOGGER.debug(
+            "Service set_device_type_4_manual_power: no mode id=1 found for device %s",
+            device_id,
+        )
+        raise HomeAssistantError(
+            "Device has no manual charging mode (mode id=1), nothing to change."
+        )
+
+    _LOGGER.debug(
+        "Service set_device_type_4_manual_power: device %s → manualPower=%s (max_limit=%s)",
+        device_id,
+        value,
+        max_limit,
+    )
+
+    try:
+        await client.async_post_device_settings(dev_payload)
+    except Exception as exc:
+        _LOGGER.error(
+            "Service set_device_type_4_manual_power: write failed for device %s: %s",
+            device_id,
+            exc,
+        )
+        raise HomeAssistantError(
+            f"Failed to write settings for device {device_id}: {exc}"
+        )
+
 
 # End Of File

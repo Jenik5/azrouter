@@ -32,6 +32,20 @@
     "set_device_type_1_temperatures": {
       "name": "Smart Slave – Temperatury",
       "description": "Ustawia temperaturę docelową i/lub temperaturę Boost dla urządzeń Smart Slave (deviceType=1)."
+    },
+    "set_device_type_4_manual_power": {
+      "name": "Wallbox – Ręczna moc ładowania",
+      "description": "Ustawia ręczny limit mocy ładowania dla urządzeń Wallbox (deviceType=4). Maksymalna moc zależy od wartości zabezpieczenia nadprądowego.",
+      "fields": {
+        "device_id": {
+          "name": "Urządzenie",
+          "description": "Wybierz urządzenie typu Wallbox (deviceType=4)."
+        },
+        "manual_power": {
+          "name": "Ręczna moc (W)",
+          "description": "Moc ładowania w watach. Prawidłowy zakres jest automatycznie weryfikowany na podstawie wartości zabezpieczenia."
+        }
+      }
     }
   }
 }

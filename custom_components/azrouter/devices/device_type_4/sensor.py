@@ -19,6 +19,7 @@ from homeassistant.const import (
     UnitOfSoundPressure,
     UnitOfTemperature,
     UnitOfElectricCurrent,
+    UnitOfPower,
 )
 from homeassistant.helpers.entity import EntityCategory
 from ...const import (
@@ -300,6 +301,41 @@ async def async_create_device_entities(
                         raw_path=path,
                         unit=UnitOfElectricCurrent.AMPERE,
                         devclass=SensorDeviceClass.CURRENT,
+                    )
+                )
+
+            # -------------------------------------------------------
+            # charge.totalPower – charger totalPower
+            # -------------------------------------------------------
+            case "charge.totalPower":
+                entities.append(
+                    DeviceNumericSensor(
+                        coordinator=coordinator,
+                        entry=entry,
+                        key="charge_totalPower",
+                        name=f"{dev_name} Total Power",
+                        device=device,
+                        raw_path=path,
+                        unit=UnitOfPower.WATT,
+                        devclass=SensorDeviceClass.POWER,
+                    )
+                )
+
+            # -------------------------------------------------------
+            # charge.circuitBreaker – charger circuitBreaker
+            # -------------------------------------------------------
+            case "charge.circuitBreaker":
+                entities.append(
+                    DeviceNumericSensor(
+                        coordinator=coordinator,
+                        entry=entry,
+                        key="charge_circuitBreaker",
+                        name=f"{dev_name} Circuit Breaker",
+                        device=device,
+                        raw_path=path,
+                        unit=UnitOfElectricCurrent.AMPERE,
+                        devclass=SensorDeviceClass.CURRENT,
+                        entity_category=EntityCategory.DIAGNOSTIC,
                     )
                 )
 

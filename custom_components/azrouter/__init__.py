@@ -4,7 +4,7 @@
 # - creates AzRouterClient and DataUpdateCoordinator
 # - fetches master data and devices list
 # - registers platforms (sensor, switch, number)
-# - exposes services (master/device boost, deviceType1 settings)
+# - exposes services (master/device boost, deviceType1 & deviceType4 settings)
 # -----------------------------------------------------------
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ from .api import AzRouterClient
 
 _LOGGER = logging.getLogger(__name__)
 
-# Mapování deviceType -> model name (pro případné použití v device_info / jinde)
+# Mapping deviceType -> model name (for potential device_info usage)
 DEVICE_TYPE_MODEL: Dict[str, str] = {
     "1": "AZ Router Smart Slave",
     "4": "AZ Charger Cube",
@@ -36,6 +36,7 @@ SERVICE_SET_MASTER_BOOST = "set_master_boost"
 SERVICE_SET_DEVICE_BOOST = "set_device_boost"
 SERVICE_SET_DEVICE_TYPE_1_TEMPS = "set_device_type_1_temperatures"
 SERVICE_SET_DEVICE_TYPE_1_MAX_POWER = "set_device_type_1_max_power"
+SERVICE_SET_DEVICE_TYPE_4_MANUAL_POWER = "set_device_type_4_manual_power"
 
 
 def _friendly_device_prefix(dtype: str) -> str:
@@ -58,7 +59,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     3) Perform initial refresh of coordinator.
     4) Fetch devices list from device API and store it for platforms.
     5) Forward platform setups (sensor, switch, number, ...).
-    6) Register integration services (master/device boost + device_type_1 settings).
+    6) Register integration services (master/device boost + device_type_1 & device_type_4 settings).
     """
     host = entry.data.get("host")
     username = entry.data.get("username")
@@ -134,7 +135,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     # =====================================================================================
-    #   HELPER: převod HA device_id -> seznam AZ device_id (common.id)
+    #   HELPER: convert HA device_id -> list of AZ device_id (common.id)
     # =====================================================================================
 
     def _resolve_az_device_ids_from_call(call) -> list[int]:
@@ -227,14 +228,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     # =====================================================================================
-    #   NEW SERVICES FOR DEVICE_TYPE_1 (Smart Slave) – delegace do number.py
+    #   SERVICES FOR DEVICE_TYPE_1 (Smart Slave) – delegated to number.py
     # =====================================================================================
 
     async def handle_set_device_type_1_max_power(call):
         """Service handler azrouter.set_device_type_1_max_power.
 
-        - Vybere zařízení (device target)
-        - Pro každé AZ device_id zavolá helper v number.py
+        - Selects devices via HA device target
+        - For each AZ device_id calls helper in number.py
         """
         max_power = call.data.get("max_power")
         az_ids = _resolve_az_device_ids_from_call(call)
@@ -246,7 +247,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             max_power,
         )
 
-        # Import uvnitř handleru kvůli omezení cyklických importů
+        # Import inside handler to avoid cyclic imports
         from .number import async_service_set_device_type_1_max_power
 
         for az_device_id in az_ids:
@@ -263,8 +264,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def handle_set_device_type_1_temperatures(call):
         """Service handler azrouter.set_device_type_1_temperatures.
 
-        - target_temperature: None/0 => bez změny
-        - boost_temperature:  None/0 => bez změny
+        - target_temperature: None/0 => no change
+        - boost_temperature:  None/0 => no change
         """
         target_temperature = call.data.get("target_temperature")
         boost_temperature = call.data.get("boost_temperature")
@@ -305,6 +306,45 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         handle_set_device_type_1_temperatures,
     )
 
+    # =====================================================================================
+    #   SERVICE FOR DEVICE_TYPE_4 (Wallbox manual power) – delegated to number.py
+    # =====================================================================================
+
+    async def handle_set_device_type_4_manual_power(call):
+        """Service handler azrouter.set_device_type_4_manual_power.
+
+        - Selects devices via HA device target
+        - For each AZ device_id calls helper in number.py
+        """
+        manual_power = call.data.get("manual_power")
+        az_ids = _resolve_az_device_ids_from_call(call)
+
+        _LOGGER.debug(
+            "Service %s called for AZ devices=%s, manual_power=%s",
+            SERVICE_SET_DEVICE_TYPE_4_MANUAL_POWER,
+            az_ids,
+            manual_power,
+        )
+
+        from .number import async_service_set_device_type_4_manual_power
+
+        for az_device_id in az_ids:
+            await async_service_set_device_type_4_manual_power(
+                hass=hass,
+                client=client,
+                coordinator=coordinator,
+                device_id=az_device_id,
+                manual_power=manual_power,
+            )
+
+        await coordinator.async_request_refresh()
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_DEVICE_TYPE_4_MANUAL_POWER,
+        handle_set_device_type_4_manual_power,
+    )
+
     _LOGGER.debug(
         "Setup finished successfully for entry_id=%s",
         entry.entry_id,
@@ -326,6 +366,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 hass.services.async_remove(DOMAIN, SERVICE_SET_DEVICE_BOOST)
                 hass.services.async_remove(DOMAIN, SERVICE_SET_DEVICE_TYPE_1_MAX_POWER)
                 hass.services.async_remove(DOMAIN, SERVICE_SET_DEVICE_TYPE_1_TEMPS)
+                hass.services.async_remove(
+                    DOMAIN, SERVICE_SET_DEVICE_TYPE_4_MANUAL_POWER
+                )
             except Exception:
                 _LOGGER.debug("Failed to remove services during unload")
     return unload_ok

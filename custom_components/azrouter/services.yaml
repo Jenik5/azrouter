@@ -90,4 +90,26 @@ set_device_type_1_temperatures:
           step: 5
           mode: box
 
+set_device_type_4_manual_power:
+  name: Wallbox – Manual Charging Power
+  description: Set the manual charging power limit for Wallbox devices (deviceType=4). The allowed range depends on the installed circuit breaker.
+  fields:
+    device_id:
+      name: Device
+      description: Select a Wallbox device (deviceType=4).
+      required: true
+      selector:
+        device:
+          integration: azrouter
+    manual_power:
+      name: Manual Charging Power (W)
+      description: Charging power in watts. The allowed range is dynamically validated inside the integration based on the circuit breaker rating.
+      required: true
+      selector:
+        number:
+          min: 1400
+          max: 7400
+          step: 100
+          mode: box
+
 # End Of File
