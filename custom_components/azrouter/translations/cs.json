@@ -15,5 +15,23 @@
     "error": {
       "cannot_connect": "Nelze se připojit nebo špatné přihlašovací údaje."
     }
+  },
+  "services": {
+    "set_master_boost": {
+      "name": "Master Boost",
+      "description": "Zapne nebo vypne Master Boost na hlavní jednotce AZ Routeru."
+    },
+    "set_device_boost": {
+      "name": "Boost zařízení",
+      "description": "Zapne nebo vypne Boost na jednom nebo více zařízeních."
+    },
+    "set_device_type_1_max_power": {
+      "name": "Smart Slave – Max. výkon",
+      "description": "Nastaví maximální zatížení pro zařízení Smart Slave (deviceType=1)."
+    },
+    "set_device_type_1_temperatures": {
+      "name": "Smart Slave – Teploty",
+      "description": "Nastaví cílovou a/nebo Boost teplotu pro zařízení Smart Slave (deviceType=1)."
+    }
   }
 }

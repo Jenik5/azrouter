@@ -15,5 +15,23 @@
     "error": {
       "cannot_connect": "Cannot connect or invalid credentials."
     }
+  },
+  "services": {
+    "set_master_boost": {
+      "name": "Master Boost",
+      "description": "Enable or disable Master Boost on the main AZ Router unit."
+    },
+    "set_device_boost": {
+      "name": "Device Boost",
+      "description": "Enable or disable Boost on one or more devices."
+    },
+    "set_device_type_1_max_power": {
+      "name": "Smart Slave – Max Power",
+      "description": "Set the maximum allowed load power for Smart Slave devices (deviceType=1)."
+    },
+    "set_device_type_1_temperatures": {
+      "name": "Smart Slave – Temperatures",
+      "description": "Set target and/or Boost temperatures for Smart Slave devices (deviceType=1)."
+    }
   }
 }

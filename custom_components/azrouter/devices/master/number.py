@@ -119,15 +119,15 @@ class AzRouterMasterTargetPowerNumber(MasterBase, NumberEntity):
                 if self._pending_value is None:
                     return
                 _LOGGER.debug(
-                    "AZR/number: debounced send Master target_power_w = %s",
+                    "Debounced send Master target_power_w = %s",
                     self._pending_value,
                 )
                 await self._client.async_set_master_target_power(self._pending_value)
             except asyncio.CancelledError:
-                _LOGGER.debug("AZR/number: debounced send cancelled")
+                _LOGGER.debug("Debounced send cancelled")
             except Exception as exc:
                 _LOGGER.warning(
-                    "AZR/number: failed to send Master target_power_w: %s", exc
+                    "Failed to send Master target_power_w: %s", exc
                 )
 
         # naplánujeme nový POST do budoucna

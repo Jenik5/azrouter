@@ -1,10 +1,11 @@
-# custom_components/azrouter/devices/device_generic/sensor.py
+# custom_components/azrouter/devices/device_type_4/sensor.py
 # -----------------------------------------------------------
-# Generic device handler
-# - pracuje se sekcí "common" v JSONu zařízení
-# - vytváří základní senzory pro common.*
-# - funguje pro deviceType 1, 4, 5, ... (cokoliv s "common")
-# - používá DeviceNumericSensor a DeviceStringSensor z devices/sensor.py
+# Sensor entities for device_type_4 (wallbox / charger device).
+#
+# - async_create_device_entities: factory for all sensors for a single device
+# - DeviceStringSensor: string sensor based on a JSON path
+# - DeviceNumericSensor: numeric sensor with parsing and cleaning
+# - DeviceMappedSensor: sensor mapping numeric codes to human-readable strings
 # -----------------------------------------------------------
 
 from __future__ import annotations
@@ -14,20 +15,24 @@ import logging
 
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import UnitOfSoundPressure, EntityCategory
-
+from homeassistant.const import (
+    UnitOfSoundPressure,
+    UnitOfTemperature,
+    UnitOfElectricCurrent,
+)
+from homeassistant.helpers.entity import EntityCategory
+from ...const import (
+    MODEL_DEVICE_TYPE_4,
+    DEVICE_STATUS_STRINGS,
+    DEVICE_TYPE_STRINGS,
+    CHARGE_STATUS_STRINGS,
+)
 from ..sensor import DeviceBase
 
 _LOGGER = logging.getLogger(__name__)
-LOG_PREFIX = "AZR/devices/device_type_4"
-
-MODEL_NAME = "A-Z Charger"
-
-DEVICE_STATUS_STRINGS = ["unpaired", "online", "offline", "error", "active"]
-DEVICE_TYPE_STRINGS = ["Generic", "Power", "HDO", "Fire", "Charger", "Inverter"]
 
 # ---------------------------------------------------------------------------
-# Factory: vytvoření entit pro libovolné zařízení se sekcí "common"
+# Factory: create entities for a single device with "common" section
 # ---------------------------------------------------------------------------
 
 async def async_create_device_entities(
@@ -36,27 +41,26 @@ async def async_create_device_entities(
     device: Dict[str, Any],
 ) -> List[SensorEntity]:
     """
-    Generic device entities based on the 'common' section.
+    Create all sensor entities for a device_type_4 (charger) device.
 
-    entry:  ConfigEntry (entry_id používáme jako "router serial" v DeviceBase)
-    device: JSON dict se strukturou zařízení (common, power, settings, ...)
+    entry:  ConfigEntry (entry_id is used as "router serial" in DeviceBase)
+    device: JSON dict describing the device (common, charge, settings, ...)
     """
     entities: List[SensorEntity] = []
 
     flat = _flatten_device(device)
-    _LOGGER.debug("%s flattened device paths: %s", LOG_PREFIX, [p for p, _ in flat])
+    _LOGGER.debug(
+        "Flattened device_type_4 device paths: %s",
+        [p for p, _ in flat],
+    )
 
     common = device.get("common", {}) or {}
     dev_name = common.get("name", f"device-{common.get('id', '?')}")
     dev_type = device.get("deviceType", "?")
 
     for path, value in flat:
-        # ID pole nechceme jako sensor – stejně jako v původním kódu
+        # We do not expose ".id" paths as entities
         if path.endswith(".id"):
-            continue
-
-        # Zajímají nás jen cesty z "common.*"
-        if not path.startswith("common."):
             continue
 
         match path:
@@ -72,11 +76,12 @@ async def async_create_device_entities(
                         name="Name",
                         device=device,
                         raw_path=path,
+                        entity_category=EntityCategory.DIAGNOSTIC,
                     )
                 )
 
             # -------------------------------------------------------
-            # common.priority  -> číslo (pořadí / priorita)
+            # common.priority  -> numeric (priority/order)
             # -------------------------------------------------------
             case "common.priority":
                 entities.append(
@@ -92,7 +97,7 @@ async def async_create_device_entities(
                 )
 
             # -------------------------------------------------------
-            # common.status  -> číslo (stav zařízení)
+            # common.status  -> numeric (device status)
             # -------------------------------------------------------
             case "common.status":
                 entities.append(
@@ -109,7 +114,7 @@ async def async_create_device_entities(
                 )
 
             # -------------------------------------------------------
-            # common.signal  -> číslo (síla signálu, typicky dBm)
+            # common.signal  -> numeric (signal strength, typically dBm)
             # -------------------------------------------------------
             case "common.signal":
                 entities.append(
@@ -127,7 +132,7 @@ async def async_create_device_entities(
                 )
 
             # -------------------------------------------------------
-            # common.type  -> číslo (typ zařízení)
+            # common.type  -> numeric (device type)
             # -------------------------------------------------------
             case "common.type":
                 entities.append(
@@ -139,7 +144,7 @@ async def async_create_device_entities(
                         device=device,
                         raw_path=path,
                         mapping=DEVICE_TYPE_STRINGS,
-                        #entity_category=EntityCategory.NONE,
+                        entity_category=EntityCategory.DIAGNOSTIC,
                     )
                 )
 
@@ -155,6 +160,7 @@ async def async_create_device_entities(
                         name="Serial Number",
                         device=device,
                         raw_path=path,
+                        entity_category=EntityCategory.DIAGNOSTIC,
                     )
                 )
 
@@ -175,7 +181,7 @@ async def async_create_device_entities(
                 )
 
             # -------------------------------------------------------
-            # common.hw  -> číslo nebo string (HW revize)
+            # common.hw  -> numeric or string (HW revision)
             # -------------------------------------------------------
             case "common.hw":
                 entities.append(
@@ -190,18 +196,126 @@ async def async_create_device_entities(
                     )
                 )
 
+            # -------------------------------------------------------
+            # charge.status  -> numeric (charge status)
+            # -------------------------------------------------------
+            case "charge.status":
+                entities.append(
+                    DeviceNumericSensor(
+                        coordinator=coordinator,
+                        entry=entry,
+                        key="charge_status_code",
+                        name="Charge Status Code",
+                        device=device,
+                        raw_path=path,
+                        entity_category=EntityCategory.DIAGNOSTIC,
+                    )
+                )
+                entities.append(
+                    DeviceMappedSensor(
+                        coordinator=coordinator,
+                        entry=entry,
+                        key="charge_status",
+                        name="Charge Status",
+                        device=device,
+                        raw_path=path,
+                        mapping=CHARGE_STATUS_STRINGS,
+                    )
+                )
+
+            # -------------------------------------------------------
+            # charge.state  -> numeric (internal state / phase)
+            # -------------------------------------------------------
+            case "charge.state":
+                entities.append(
+                    DeviceNumericSensor(
+                        coordinator=coordinator,
+                        entry=entry,
+                        key="charge_state",
+                        name="Charge State",
+                        device=device,
+                        raw_path=path,
+                        entity_category=EntityCategory.DIAGNOSTIC,
+                    )
+                )
+
+            # -------------------------------------------------------
+            # charge.boostSource  -> numeric (boost source diagnostic)
+            # -------------------------------------------------------
+            case "charge.boostSource":
+                entities.append(
+                    DeviceNumericSensor(
+                        coordinator=coordinator,
+                        entry=entry,
+                        key="charge_boostSource",
+                        name="Boost Source",
+                        device=device,
+                        raw_path=path,
+                        entity_category=EntityCategory.DIAGNOSTIC,
+                    )
+                )
+
+            # -------------------------------------------------------
+            # charge.temperature – charger temperature
+            # -------------------------------------------------------
+            case "charge.temperature":
+                entities.append(
+                    DeviceNumericSensor(
+                        coordinator=coordinator,
+                        entry=entry,
+                        key="charge_temperature",
+                        name=f"{dev_name} Charger Temp.",
+                        device=device,
+                        raw_path=path,
+                        unit=UnitOfTemperature.CELSIUS,
+                        devclass=SensorDeviceClass.TEMPERATURE,
+                        entity_category=EntityCategory.DIAGNOSTIC,
+                    )
+                )
+
+            # -------------------------------------------------------
+            # charge.current.<idx> – line current L1–L3
+            # -------------------------------------------------------
+            case p if p.startswith("charge.current."):
+                try:
+                    idx = int(p.split(".")[-1])
+                except ValueError:
+                    _LOGGER.debug(
+                        "Invalid charge.current index in path %s",
+                        p,
+                    )
+                    continue
+
+                # Only L1–L3
+                if idx < 0 or idx > 2:
+                    continue
+
+                entities.append(
+                    DeviceNumericSensor(
+                        coordinator=coordinator,
+                        entry=entry,
+                        key=f"charge_current_l{idx+1}",
+                        name=f"{dev_name} Current L{idx+1}",
+                        device=device,
+                        raw_path=path,
+                        unit=UnitOfElectricCurrent.AMPERE,
+                        devclass=SensorDeviceClass.CURRENT,
+                    )
+                )
+
+            # -------------------------------------------------------
+            # Everything else is logged as unhandled for now
+            # -------------------------------------------------------
             case _:
                 _LOGGER.debug(
-                    "%s generic: unhandled common path %s = %s (type=%s)",
-                    LOG_PREFIX,
+                    "Device_type_4: unhandled path %s = %s (type=%s)",
                     path,
                     value,
                     type(value).__name__,
                 )
 
     _LOGGER.debug(
-        "%s created %d generic entities for device %s (type=%s, id=%s)",
-        LOG_PREFIX,
+        "Device_type_4: created %d sensor entities for device %s (type=%s, id=%s)",
         len(entities),
         dev_name,
         dev_type,
@@ -212,11 +326,11 @@ async def async_create_device_entities(
 
 
 # ---------------------------------------------------------------------------
-# Pomocná funkce
+# Helper: flatten device dict into (path, value) pairs
 # ---------------------------------------------------------------------------
 
 def _flatten_device(d: Dict[str, Any], prefix: str = "") -> List[Tuple[str, Any]]:
-    """Rekurzivně zploští JSON do dvojic (path, value)."""
+    """Recursively flatten a device JSON structure into (path, value) pairs."""
     out: List[Tuple[str, Any]] = []
 
     if isinstance(d, dict):
@@ -229,14 +343,16 @@ def _flatten_device(d: Dict[str, Any], prefix: str = "") -> List[Tuple[str, Any]
             out.extend(_flatten_device(item, new_prefix))
     else:
         out.append((prefix, d))
+
     return out
 
+
 # ---------------------------------------------------------------------------
-# Sensory
+# Sensor entity classes
 # ---------------------------------------------------------------------------
 
 class DeviceStringSensor(DeviceBase, SensorEntity):
-    """Textový senzor založený na JSON path."""
+    """String sensor based on a JSON path in the device payload."""
 
     def __init__(
         self,
@@ -247,8 +363,8 @@ class DeviceStringSensor(DeviceBase, SensorEntity):
         device: Dict[str, Any],
         raw_path: str,
         icon: str | None = None,
-        entity_category: EntityCategory | None = None,  # ← nový parametr
-    ):
+        entity_category: EntityCategory | None = None,
+    ) -> None:
         super().__init__(
             coordinator=coordinator,
             entry=entry,
@@ -259,19 +375,18 @@ class DeviceStringSensor(DeviceBase, SensorEntity):
             unit=None,
             devclass=None,
             icon=icon,
-            entity_category=entity_category,  # ← pošleme dál
-            model=MODEL_NAME,
+            entity_category=entity_category,
+            model=MODEL_DEVICE_TYPE_4,
         )
 
-        
     @property
     def native_value(self):
-        v = self._read_raw()
-        return None if v is None else str(v)
+        value = self._read_raw()
+        return None if value is None else str(value)
 
 
 class DeviceNumericSensor(DeviceBase, SensorEntity):
-    """Číselný senzor založený na JSON path."""
+    """Numeric sensor based on a JSON path in the device payload."""
 
     def __init__(
         self,
@@ -284,8 +399,8 @@ class DeviceNumericSensor(DeviceBase, SensorEntity):
         unit: str | None = None,
         devclass: SensorDeviceClass | None = None,
         icon: str | None = None,
-        entity_category: EntityCategory | None = None,  # ← nový parametr
-    ):
+        entity_category: EntityCategory | None = None,
+    ) -> None:
         super().__init__(
             coordinator=coordinator,
             entry=entry,
@@ -296,42 +411,43 @@ class DeviceNumericSensor(DeviceBase, SensorEntity):
             unit=unit,
             devclass=devclass,
             icon=icon,
-            entity_category=entity_category,  # ← pošleme dál
-            model=MODEL_NAME,
+            entity_category=entity_category,
+            model=MODEL_DEVICE_TYPE_4,
         )
 
     @property
     def native_value(self):
-        v = self._read_raw()
-        if v is None:
+        raw = self._read_raw()
+        if raw is None:
             return None
 
-        # převod string → číslo (podobně jako v původním kódu)
-        if isinstance(v, str):
-            s = v.strip()
+        # Convert string to numeric if possible
+        if isinstance(raw, str):
+            s = raw.strip()
             if s == "" or s.lower() in ("n/a", "na", "none", "-"):
                 return None
             try:
-                v = float(s) if "." in s else int(s)
+                raw = float(s) if "." in s else int(s)
             except Exception:
                 return None
 
         try:
-            val = float(v)
+            val = float(raw)
             if abs(val - int(val)) < 1e-9:
                 return int(round(val))
             return val
         except Exception:
             _LOGGER.exception(
-                "DeviceNumericSensor: Failed to parse numeric value for %s (raw=%r, path=%s)",
+                "DeviceNumericSensor: failed to parse numeric value for %s (raw=%r, path=%s)",
                 getattr(self, "_attr_unique_id", "?"),
-                v,
+                raw,
                 self._raw_path,
             )
             return None
 
+
 class DeviceMappedSensor(DeviceBase, SensorEntity):
-    """Senzor, který mapuje číselný stav na text podle předané mapy."""
+    """Sensor that maps a numeric code to a string using a provided mapping list."""
 
     def __init__(
         self,
@@ -344,8 +460,8 @@ class DeviceMappedSensor(DeviceBase, SensorEntity):
         mapping: List[str],
         icon: str | None = None,
         entity_category: EntityCategory | None = None,
-    ):
-        # u mapovaných stavů nechceme jednotku ani device_class
+    ) -> None:
+        # For mapped states we do not want a unit or device_class
         super().__init__(
             coordinator=coordinator,
             entry=entry,
@@ -357,39 +473,37 @@ class DeviceMappedSensor(DeviceBase, SensorEntity):
             devclass=None,
             icon=icon,
             entity_category=entity_category,
-            model=MODEL_NAME,
+            model=MODEL_DEVICE_TYPE_4,
         )
         self._mapping = mapping
 
     @property
     def native_value(self):
-        v = self._read_raw()
-        if v is None:
+        raw = self._read_raw()
+        if raw is None:
             return None
 
-        # pokusíme se získat integer index
-        if isinstance(v, str):
-            s = v.strip()
+        # Try to obtain an integer index
+        if isinstance(raw, str):
+            s = raw.strip()
             if s == "":
                 return None
             try:
-                v = int(s)
+                raw = int(s)
             except Exception:
                 _LOGGER.debug(
-                    "%s DeviceMappedSensor: non-integer raw value %r for %s",
-                    LOG_PREFIX,
-                    v,
+                    "DeviceMappedSensor: non-integer raw value %r for %s",
+                    raw,
                     getattr(self, "_attr_unique_id", "?"),
                 )
                 return None
 
         try:
-            idx = int(v)
+            idx = int(raw)
         except Exception:
             _LOGGER.debug(
-                "%s DeviceMappedSensor: cannot cast %r to int for %s",
-                LOG_PREFIX,
-                v,
+                "DeviceMappedSensor: cannot cast %r to int for %s",
+                raw,
                 getattr(self, "_attr_unique_id", "?"),
             )
             return None
@@ -397,7 +511,6 @@ class DeviceMappedSensor(DeviceBase, SensorEntity):
         if 0 <= idx < len(self._mapping):
             return self._mapping[idx]
 
-        # mimo rozsah – vrátíme něco rozumného
+        # If index is out of range, return a readable fallback
         return f"unknown({idx})"
-
 # End Of File

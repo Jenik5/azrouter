@@ -1,40 +1,43 @@
 # custom_components/azrouter/devices/master/sensor.py
+# -----------------------------------------------------------
+# Master-level sensor entities for the AZ Router integration.
+#
+# - async_create_entities: factory that builds all master sensors
+# - AzRouterScalarSensor: scalar/text master sensor (grid, cloud, status)
+# - AzRouterBinarySensor: binary master sensor (flags like HDO)
+# - AzRouterTimestampSensor: timestamp master sensor (system time, last update)
+# -----------------------------------------------------------
 
 from __future__ import annotations
-from typing import Any, Dict, List, Optional
-from datetime import datetime, timezone
 
+from typing import List, Optional
+from datetime import datetime, timezone
 import logging
 import re
 
 from homeassistant.components.sensor import (
-SensorEntity,
-SensorDeviceClass,
+    SensorEntity,
+    SensorDeviceClass,
 )
 from homeassistant.const import (
-UnitOfPower,
-UnitOfEnergy,
-UnitOfElectricPotential,
-UnitOfElectricCurrent,
-UnitOfTemperature,
+    UnitOfPower,
+    UnitOfEnergy,
+    UnitOfElectricPotential,
+    UnitOfElectricCurrent,
+    UnitOfTemperature,
 )
 from homeassistant.config_entries import ConfigEntry
-
-from homeassistant.components.binary_sensor import (
-BinarySensorEntity,
-)
-from homeassistant.helpers.entity import DeviceInfo # můžeš klidně smazat, pokud není nikde potřeba
-from homeassistant.util import dt as hass_dt
+from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.helpers.entity import EntityCategory
+from homeassistant.util import dt as hass_dt
 
-from ...const import DOMAIN # aktuálně nevyužito, můžeš odebrat
-from ..sensor import MasterBase # nově používáme MasterBase (z devices/sensor.py)
+from ..sensor import MasterBase
 
 _LOGGER = logging.getLogger(__name__)
 
-#---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 # Human-friendly string maps
-#---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 
 MODE_STRINGS = ["Summer", "Winter"]
 SYSTEM_STATUS_STRINGS = ["Online", "Offline", "Updating"]
@@ -42,31 +45,49 @@ HDO_STRINGS = ["Off", "On"]
 CLOUD_STRINGS = ["No", "Yes"]
 GRID_STRINGS = ["Connected", "Disconnected"]
 
-#---------------------------------------------------------------------------
-# Factory: vytvoření master entit
-#---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
+
+def _get_master_value(master_data: list[dict], raw_path: str):
+    """Return value from master_data for the given path, or None."""
+    for item in master_data:
+        if item.get("path") == raw_path:
+            return item.get("value")
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Factory: create master entities
+# ---------------------------------------------------------------------------
 
 async def async_create_entities(coordinator, entry: ConfigEntry) -> List[SensorEntity]:
     """
-    Vytvoří master senzory na základě flattened seznamu master_data.
-    master_data: list(dict(path="...", value=...))
+    Create master sensors based on the flattened list in coordinator.data["master_data"].
+
+    master_data is expected to be:
+        [
+            {"path": "power.input.voltage.0.value", "value": ...},
+            {"path": "status.system.status", "value": ...},
+            ...
+        ]
     """
     entities: list[SensorEntity] = []
 
     master = coordinator.data.get("master_data", [])
     if not isinstance(master, list):
-        _LOGGER.warning("master_data is not a list! (%s)", type(master))
+        _LOGGER.warning("master_data is not a list (%s)", type(master))
         return []
 
     for item in master:
         path = item.get("path")
-        val = item.get("value")
 
         if not isinstance(path, str):
             continue
 
+        # Skip ".id" fields, they are not exposed as entities
         if path.endswith(".id"):
-            # id položky nepublikujeme jako entitu
             continue
 
         # --- Input voltages: power.input.voltage.<idx>.value ---
@@ -115,6 +136,7 @@ async def async_create_entities(coordinator, entry: ConfigEntry) -> List[SensorE
             idx = int(m.group(1))
             if idx > 2:
                 continue
+
             entities.append(
                 AzRouterScalarSensor(
                     coordinator=coordinator,
@@ -126,8 +148,9 @@ async def async_create_entities(coordinator, entry: ConfigEntry) -> List[SensorE
                     devclass=SensorDeviceClass.POWER,
                 )
             )
-            # when we saw L3 (idx==2) also create a total aggregator sensor (reads multiple paths)
-            if (idx == 2):
+
+            # When we see L3 (idx == 2) also create a total power sensor.
+            if idx == 2:
                 entities.append(
                     AzRouterScalarSensor(
                         coordinator=coordinator,
@@ -176,7 +199,8 @@ async def async_create_entities(coordinator, entry: ConfigEntry) -> List[SensorE
                     )
                 )
                 continue
-            # Routed total
+
+            # idx == 3 -> Routed total
             if idx == 3:
                 entities.append(
                     AzRouterScalarSensor(
@@ -184,16 +208,14 @@ async def async_create_entities(coordinator, entry: ConfigEntry) -> List[SensorE
                         entry=entry,
                         key="output_power_total",
                         name="Routed Power Total",
-                        raw_path=path, 
+                        raw_path=path,
                         unit=UnitOfPower.WATT,
                         devclass=SensorDeviceClass.POWER,
                     )
                 )
                 continue
 
-        
-
-        # --- Další single-value cesty řeší match/case ---
+        # --- Remaining single-value paths handled by match/case ---
         match path:
             case "power.output.energy.0.value":
                 entities.append(
@@ -368,7 +390,7 @@ async def async_create_entities(coordinator, entry: ConfigEntry) -> List[SensorE
                 continue
 
             case "status.system.masterBoost":
-                # řeší se ve switchi
+                # handled by switches, no sensor
                 continue
 
             case "status.system.uptime":
@@ -496,20 +518,22 @@ async def async_create_entities(coordinator, entry: ConfigEntry) -> List[SensorE
                 continue
 
             case _:
-                _LOGGER.debug("AZR UNHANDLED MASTER PATH %s = %s", path, val)
+                _LOGGER.debug("Unhandled master path %s = %s", path, item.get("value"))
                 continue
 
     return entities
 
-#---------------------------------------------------------------------------
-# Entity classes – refaktorované na MasterBase
-#---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Entity classes – based on MasterBase
+# ---------------------------------------------------------------------------
 
 class AzRouterScalarSensor(MasterBase, SensorEntity):
     """
-    Obecný číselný/textový master senzor – čte hodnotu z coordinator.data['master_data'].
-    - raw_path: přesná cesta v master_data (např. "power.input.voltage.0.value")
-    - provádí per-key transformace (škálování, mapování, formát MAC, uptime...)
+    Generic numeric/text master sensor.
+
+    Reads a value from coordinator.data["master_data"] based on self._raw_path and
+    applies per-key transformations (scaling, mapping, formatting).
     """
 
     def __init__(
@@ -522,7 +546,7 @@ class AzRouterScalarSensor(MasterBase, SensorEntity):
         unit=None,
         devclass=None,
         entity_category: EntityCategory | None = None,
-    ):
+    ) -> None:
         super().__init__(
             coordinator=coordinator,
             entry=entry,
@@ -542,7 +566,7 @@ class AzRouterScalarSensor(MasterBase, SensorEntity):
         self._raw_path = raw_path
         self._key = key
 
-        # UI detaily – ikony
+        # UI details – icons
         if self._key.startswith("cloud_"):
             self._attr_icon = "mdi:cloud"
         if self._key == "system_uptime":
@@ -551,20 +575,17 @@ class AzRouterScalarSensor(MasterBase, SensorEntity):
     @property
     def native_value(self):
         """
-        Načte hodnotu z master_data.
+        Read value from master_data and apply key-specific transformations:
 
-        Podle klíče:
-            - škáluje napětí/proud (mV/mA -> V/A),
-            - mapuje kódy na text (mode/system/cloud),
-            - formátuje MAC,
-            - převádí uptime na čitelný string.
+          - scale voltages/currents (mV/mA → V/A),
+          - map status codes to strings,
+          - format MAC address,
+          - convert uptime seconds to human-readable string.
         """
         data = self.coordinator.data or {}
         master = data.get("master_data", [])
 
-        val = None
-
-        # Speciální případ: souhrnná input power – agreguje více položek
+        # Special case: aggregated input power from all phases
         if self._raw_path == "power.input.power.total":
             total = 0
             for item in master:
@@ -578,15 +599,11 @@ class AzRouterScalarSensor(MasterBase, SensorEntity):
                         continue
             return total
 
-        # najít konkrétní path
-        for item in master:
-            if item.get("path") == self._raw_path:
-                val = item.get("value")
-
+        val = _get_master_value(master, self._raw_path)
         if val is None:
             return None
 
-        # transformace/mappingy
+        # transformations/mappings
         if self._key.startswith("input_voltage_"):
             val = round(val / 1000.0, 3)
         if self._key.startswith("input_current_"):
@@ -596,12 +613,15 @@ class AzRouterScalarSensor(MasterBase, SensorEntity):
                 val = GRID_STRINGS[int(val)]
             except Exception:
                 pass
+
         if self._key == "system_status":
             if isinstance(val, int) and 0 <= val < len(SYSTEM_STATUS_STRINGS):
                 val = SYSTEM_STATUS_STRINGS[val]
+
         if self._key == "mode":
             if isinstance(val, int) and 0 <= val < len(MODE_STRINGS):
                 val = MODE_STRINGS[val]
+
         if self._key in ("cloud_reachable", "cloud_registered"):
             if isinstance(val, int) and 0 <= val < len(CLOUD_STRINGS):
                 val = CLOUD_STRINGS[val]
@@ -611,7 +631,7 @@ class AzRouterScalarSensor(MasterBase, SensorEntity):
                 mac = str(val).replace("-", "").replace(":", "").strip()
                 if len(mac) == 12 and all(c in "0123456789ABCDEFabcdef" for c in mac):
                     mac = mac.upper()
-                    return ":".join(mac[i:i+2] for i in range(0, 12, 2))
+                    return ":".join(mac[i:i + 2] for i in range(0, 12, 2))
                 return str(val)
             except Exception:
                 return str(val)
@@ -619,6 +639,7 @@ class AzRouterScalarSensor(MasterBase, SensorEntity):
         if self._key == "system_uptime":
             try:
                 seconds = int(val)
+                # In case value is in milliseconds
                 if seconds > 10**6:
                     seconds = int(seconds / 1000)
                 days, rem = divmod(int(seconds), 86400)
@@ -630,8 +651,10 @@ class AzRouterScalarSensor(MasterBase, SensorEntity):
 
         return val
 
+
 class AzRouterBinarySensor(MasterBase, BinarySensorEntity):
-    """Binary master senzor pro jednoduché 0/1 flagy."""
+    """Binary master sensor for simple 0/1 flags."""
+
     def __init__(
         self,
         coordinator,
@@ -642,7 +665,7 @@ class AzRouterBinarySensor(MasterBase, BinarySensorEntity):
         unit=None,
         devclass=None,
         entity_category: EntityCategory | None = None,
-    ):
+    ) -> None:
         super().__init__(
             coordinator=coordinator,
             entry=entry,
@@ -664,16 +687,11 @@ class AzRouterBinarySensor(MasterBase, BinarySensorEntity):
 
     @property
     def is_on(self) -> Optional[bool]:
-        """
-        Určí bool stav podle hodnoty v master_data (0/1, on/off, true/false...).
-        """
+        """Return boolean state based on the value in master_data."""
         data = self.coordinator.data or {}
         master = data.get("master_data", [])
-        val = None
-        for item in master:
-            if item.get("path") == self._raw_path:
-                val = item.get("value")
 
+        val = _get_master_value(master, self._raw_path)
         if val is None:
             return None
 
@@ -690,14 +708,15 @@ class AzRouterBinarySensor(MasterBase, BinarySensorEntity):
                 return False
         return None
 
+
 class AzRouterTimestampSensor(MasterBase, SensorEntity):
     """
-    Timestamp master senzor s robustním parsováním epochy a lokálním časem HA.
-    Umí:
-    - epoch v sekundách i milisekundách,
-    - detekovat „local epoch“ vs UTC,
-    - odmítnout nesmyslné časy,
-    - výsledek vrátit jako string ve formátu YYYY-MM-DD HH:MM:SS.
+    Timestamp master sensor with robust epoch parsing and conversion to local time.
+
+    Handles:
+      - epoch in seconds or milliseconds,
+      - potential “local epoch” vs UTC,
+      - basic sanity checks on timestamp range.
     """
 
     def __init__(
@@ -710,7 +729,7 @@ class AzRouterTimestampSensor(MasterBase, SensorEntity):
         unit=None,
         devclass=None,
         entity_category: EntityCategory | None = None,
-    ):
+    ) -> None:
         super().__init__(
             coordinator=coordinator,
             entry=entry,
@@ -736,11 +755,8 @@ class AzRouterTimestampSensor(MasterBase, SensorEntity):
     def native_value(self):
         data = self.coordinator.data or {}
         master = data.get("master_data", [])
-        raw = None
-        for item in master:
-            if item.get("path") == self._raw_path:
-                raw = item.get("value")
 
+        raw = _get_master_value(master, self._raw_path)
         if raw is None:
             return None
 
@@ -756,50 +772,44 @@ class AzRouterTimestampSensor(MasterBase, SensorEntity):
                 ts = int(float(raw))
         except Exception as err:
             _LOGGER.debug(
-                "AZR TimestampSensor %s: cannot convert raw to number: %s (%s)",
+                "TimestampSensor %s: cannot convert raw value to number: %s (%s)",
                 self._attr_name,
                 raw,
                 err,
             )
             return None
 
-        # detekce ms vs s
+        # Detect milliseconds vs seconds
         if ts > 10**12:
             ts = int(ts / 1000)
 
-        # detekce local epoch vs UTC epoch
+        # Detect local epoch vs UTC epoch
         try:
             now_utc_ts = int(datetime.now(timezone.utc).timestamp())
             utco = hass_dt.now().utcoffset() or 0
             offset_sec = int(utco.total_seconds()) if hasattr(utco, "total_seconds") else int(utco)
             if abs((ts - now_utc_ts) - offset_sec) <= 120:
                 ts = int(ts - offset_sec)
-        except Exception as e:
+        except Exception as exc:
             _LOGGER.debug(
-                "AZR TimestampSensor %s: error while detecting local epoch: %s",
+                "TimestampSensor %s: error while detecting local epoch: %s",
                 self._attr_name,
-                e,
+                exc,
             )
 
-        # sanity check
+        # Sanity check (between year 2000 and 2100)
         if ts < 946684800 or ts > 4102444800:
             return None
 
         try:
             dt_utc = datetime.fromtimestamp(ts, tz=timezone.utc)
             dt_local = hass_dt.as_local(dt_utc)
-            formatted = dt_local.strftime("%Y-%m-%d %H:%M:%S")
-            return formatted
+            return dt_local.strftime("%Y-%m-%d %H:%M:%S")
         except Exception as err:
             _LOGGER.exception(
-                "AZR TimestampSensor %s: error converting timestamp: %s",
+                "TimestampSensor %s: error converting timestamp: %s",
                 self._attr_name,
                 err,
             )
             return None
-
-#---------------------------------------------------------------------------
 # End Of File
-#---------------------------------------------------------------------------
-
-

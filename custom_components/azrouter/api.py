@@ -1,19 +1,33 @@
+# custom_components/azrouter/api.py
+# -----------------------------------------------------------
+# Central async API client for communication with A-Z Router.
+# Provides unified REST helpers (_api_get/_api_post), high-level
+# async methods for status, power, devices, settings, and all
+# write operations including master/device boost and device settings.
+# -----------------------------------------------------------
+
 from __future__ import annotations
+
 import asyncio
-from typing import Any, Dict, Optional
-import aiohttp
+from typing import Any, Dict, List, Optional
 import logging
 
-_LOGGER = logging.getLogger(__name__)
+import aiohttp
 
-LOGIN_PATH   = "/api/v1/login"
-STATUS_PATH  = "/api/v1/status"
-POWER_PATH   = "/api/v1/power"
-DEVICES_PATH = "/api/v1/devices"
-SETTINGS_PATH = "/api/v1/settings"
-BOOST_PATH   = "/api/v1/system/boost"
-DEVICE_BOOST_PATH = "/api/v1/device/boost"
-DEVICE_SETTINGS_PATH = "/api/v1/device/settings"
+from .const import (
+    API_LOGIN,
+    API_STATUS,
+    API_POWER,
+    API_DEVICES,
+    API_SETTINGS,
+    API_MASTER_BOOST,
+    API_DEVICE_BOOST,
+    API_DEVICE_SETTINGS,
+    MASTER_TARGET_POWER_MIN,
+    MASTER_TARGET_POWER_MAX,
+)
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class AzRouterClient:
@@ -34,354 +48,241 @@ class AzRouterClient:
         self._verify_ssl = verify_ssl
         self._token: Optional[str] = None
 
+    # -------------------------------------------------------------------------
+    # Interní pomocné metody
+    # -------------------------------------------------------------------------
+
     @property
     def base(self) -> str:
+        """Base URL včetně http/https prefixu."""
         return self._host if self._host.startswith("http") else f"http://{self._host}"
 
     def _headers(self) -> Dict[str, str]:
-        headers = {"Accept": "application/json"}
+        headers: Dict[str, str] = {"Accept": "application/json"}
         if self._token:
             headers["Authorization"] = f"Bearer {self._token}"
         return headers
+
+    async def _api_request(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: Dict[str, Any] | None = None,
+    ) -> Any:
+        """Unified REST call wrapper (GET/POST)."""
+
+        url = f"{self.base}{path}"
+        _LOGGER.debug("%s %s payload=%s", method, url, json)
+
+        try:
+            async with self._session.request(
+                method,
+                url,
+                json=json,
+                ssl=self._verify_ssl,
+                headers=self._headers(),
+            ) as resp:
+                try:
+                    resp.raise_for_status()
+                except aiohttp.ClientResponseError as e:
+                    body = await resp.text()
+                    _LOGGER.warning(
+                        "%s %s failed (status=%s): %s; body=%s",
+                        method,
+                        url,
+                        resp.status,
+                        e,
+                        body[:300],
+                    )
+                    raise
+
+                # Prefer JSON, fall back to {} on error
+                try:
+                    return await resp.json()
+                except Exception:
+                    body = await resp.text()
+                    _LOGGER.debug(
+                        "%s %s non-JSON response: %s",
+                        method,
+                        url,
+                        body[:300],
+                    )
+                    return {}
+
+        except Exception as exc:
+            _LOGGER.warning("request %s %s failed: %s", method, url, exc)
+            raise
+
+    async def _api_get(self, path: str) -> Any:
+        return await self._api_request("GET", path)
+
+    async def _api_post(self, path: str, payload: Dict[str, Any]) -> Any:
+        return await self._api_request("POST", path, json=payload)
 
     # -------------------------------------------------------------------------
     # Auth
     # -------------------------------------------------------------------------
 
-    async def login(self) -> None:
-        """Authenticate and store token if returned."""
-        url = f"{self.base}{LOGIN_PATH}"
+    async def async_login(self) -> None:
+        """Authenticate and store token."""
         payload = {"data": {"username": self._username, "password": self._password}}
-        _LOGGER.debug("POST login -> %s", url)
+        data = await self._api_post(API_LOGIN, payload)
 
-        async with self._session.post(url, json=payload, ssl=self._verify_ssl) as resp:
-            resp.raise_for_status()
-
-            try:
-                data = await resp.json()
-            except Exception:
-                data = {}
-
-            _LOGGER.debug("Login response: %s", data)
+        if isinstance(data, dict):
             for key in ("token", "access_token", "accessToken", "jwt", "session"):
-                if key in data and isinstance(data[key], str):
-                    self._token = data[key]
-                    _LOGGER.debug("Stored auth token from key: %s", key)
+                val = data.get(key)
+                if isinstance(val, str) and val:
+                    self._token = val
+                    _LOGGER.debug("stored auth token from '%s'", key)
                     break
 
+    # Backwards compatible alias
+    async def login(self) -> None:  # pragma: no cover
+        _LOGGER.debug("login() deprecated, use async_login()")
+        await self.async_login()
+
     # -------------------------------------------------------------------------
-    # Základní GET endpointy
+    # Basic GET endpoints
     # -------------------------------------------------------------------------
 
-    async def get_status(self) -> Dict[str, Any]:
-        url = f"{self.base}{STATUS_PATH}"
-        _LOGGER.debug("GET %s", url)
-        async with self._session.get(url, ssl=self._verify_ssl, headers=self._headers()) as resp:
-            resp.raise_for_status()
-            try:
-                return await resp.json()
-            except Exception:
-                text = await resp.text()
-                _LOGGER.debug("Status not JSON, raw: %s", text[:200])
-                return {}
+    async def async_get_status(self) -> Dict[str, Any]:
+        data = await self._api_get(API_STATUS)
+        return data if isinstance(data, dict) else {}
 
-    async def get_power(self) -> Dict[str, Any]:
-        url = f"{self.base}{POWER_PATH}"
-        _LOGGER.debug("GET %s", url)
-        async with self._session.get(url, ssl=self._verify_ssl, headers=self._headers()) as resp:
-            resp.raise_for_status()
-            try:
-                return await resp.json()
-            except Exception:
-                text = await resp.text()
-                _LOGGER.debug("Power not JSON, raw: %s", text[:200])
-                return {}
+    async def async_get_power(self) -> Dict[str, Any]:
+        data = await self._api_get(API_POWER)
+        return data if isinstance(data, dict) else {}
 
-    async def async_get_devices_data(self) -> Dict[str, Any]:
+    async def async_get_devices(self) -> List[Dict[str, Any]]:
+        """Handles both:
+        - list response
+        - {"devices": [...]} response
         """
-        Načte /api/v1/devices.
+        data = await self._api_get(API_DEVICES)
 
-        Očekáváme list zařízení, proto ho zabalíme do struktury {"devices": [...]}.
-        """
-        url = f"{self.base}{DEVICES_PATH}"
-        _LOGGER.debug("AZR/api: GET %s", url)
+        if isinstance(data, list):
+            return data
+        if isinstance(data, dict):
+            lst = data.get("devices")
+            if isinstance(lst, list):
+                return lst
+        return []
 
-        async with self._session.get(url, ssl=self._verify_ssl, headers=self._headers()) as resp:
-            _LOGGER.debug("AZR/api: HTTP status: %s", resp.status)
+    async def async_get_settings(self) -> Dict[str, Any]:
+        data = await self._api_get(API_SETTINGS)
+        return data if isinstance(data, dict) else {}
 
-            try:
-                json_data = await resp.json()
-                _LOGGER.debug("AZR/api: raw JSON response type: %s", type(json_data))
-                _LOGGER.debug("AZR/api: raw JSON response: %s", json_data)
+    # Backwards compatible aliases -------------------------------------------
 
-                devices = json_data  # endpoint zřejmě vrací rovnou list
-                _LOGGER.debug(
-                    "AZR/api: extracted devices list (len=%s): %s",
-                    len(devices) if isinstance(devices, list) else "not-a-list",
-                    devices,
-                )
+    async def get_status(self) -> Dict[str, Any]:  # pragma: no cover
+        return await self.async_get_status()
 
-                return {"devices": devices}
+    async def get_power(self) -> Dict[str, Any]:  # pragma: no cover
+        return await self.async_get_power()
 
-            except Exception as e:
-                text = await resp.text()
-                _LOGGER.debug("AZR/api: response was not JSON! Error: %s", e)
-                _LOGGER.debug("AZR/api: raw response text: %s", text[:300])
+    async def async_get_devices_data(self) -> Dict[str, Any]:  # pragma: no cover
+        devices = await self.async_get_devices()
+        return {"devices": devices}
 
-                return {"devices": []}
-
-    async def async_get_master_settings(self) -> Dict[str, Any]:
-        """Fetch full Master settings JSON from /api/v1/settings."""
-        url = f"{self.base}{SETTINGS_PATH}"
-        _LOGGER.debug("AZR/api: GET Master settings -> %s", url)
-
-        async with self._session.get(
-            url,
-            ssl=self._verify_ssl,
-            headers=self._headers(),
-        ) as resp:
-            _LOGGER.debug("AZR/api: Master settings HTTP status: %s", resp.status)
-            resp.raise_for_status()
-
-            try:
-                json_data = await resp.json()
-                _LOGGER.debug("AZR/api: Master settings JSON: %s", json_data)
-                return json_data
-            except Exception as e:
-                text = await resp.text()
-                _LOGGER.debug(
-                    "AZR/api: Master settings not JSON! Error: %s, text: %s",
-                    e,
-                    text[:300],
-                )
-                return {}
+    async def async_get_master_settings(self) -> Dict[str, Any]:  # pragma: no cover
+        return await self.async_get_settings()
 
     # -------------------------------------------------------------------------
-    # Kombinovaný update pro DataUpdateCoordinator
+    # Combined fetch for DataUpdateCoordinator
     # -------------------------------------------------------------------------
 
     async def async_get_all_data(self) -> Dict[str, Any]:
-        """Fetch /api/v1/power, /api/v1/status, /api/v1/devices a /api/v1/settings a vrátí kombinovaná data."""
+        """Fetch power + status + devices + settings."""
+        _LOGGER.debug("async_get_all_data – start")
 
-        _LOGGER.debug("AZR/api: Fetching power + status (parallel)")
+        tasks = [
+            self.async_get_power(),
+            self.async_get_status(),
+            self.async_get_devices(),
+            self.async_get_settings(),
+        ]
 
-        power_t = asyncio.create_task(self.get_power())
-        status_t = asyncio.create_task(self.get_status())
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        r_power, r_status, r_devices, r_settings = results
 
-        power = None
-        status = None
-
-        try:
-            results = await asyncio.gather(power_t, status_t, return_exceptions=True)
-            r_power, r_status = results
-
-            if isinstance(r_power, Exception):
-                _LOGGER.debug("AZR/api: async_get_all_data: get_power raised: %s", r_power)
-            else:
-                power = r_power
-
-            if isinstance(r_status, Exception):
-                _LOGGER.debug("AZR/api: async_get_all_data: get_status raised: %s", r_status)
-            else:
-                status = r_status
-
-        except Exception as exc:
-            _LOGGER.debug("AZR/api: async_get_all_data: gather failed, trying individually: %s", exc)
-            try:
-                power = await power_t
-            except Exception as e2:
-                _LOGGER.debug("async_get_all_data: get_power individually failed: %s", e2)
-                power = None
-            try:
-                status = await status_t
-            except Exception as e3:
-                _LOGGER.debug("async_get_all_data: get_status individually failed: %s", e3)
-                status = None
+        power = r_power if isinstance(r_power, dict) else {}
+        status = r_status if isinstance(r_status, dict) else {}
+        devices = r_devices if isinstance(r_devices, list) else []
+        settings = r_settings if isinstance(r_settings, dict) else {}
 
         # flatten helper
-        def _flatten_to_list(obj: Any, base: str, out: list):
+        def _flatten(obj: Any, base: str, out: list) -> None:
             if isinstance(obj, dict):
                 for k, v in obj.items():
-                    new_base = f"{base}.{k}" if base else k
-                    _flatten_to_list(v, new_base, out)
+                    _flatten(v, f"{base}.{k}" if base else k, out)
             elif isinstance(obj, list):
-                for idx, item in enumerate(obj):
-                    new_base = f"{base}.{idx}" if base else str(idx)
-                    _flatten_to_list(item, new_base, out)
+                for i, v in enumerate(obj):
+                    _flatten(v, f"{base}.{i}" if base else str(i), out)
             else:
                 out.append({"path": base, "value": obj})
 
-        master_list: list[Dict[str, Any]] = []
-
-        if isinstance(power, dict):
-            _flatten_to_list(power, "power", master_list)
-
-        if isinstance(status, dict):
-            _flatten_to_list(status, "status", master_list)
-
-        _LOGGER.debug("async_get_all_data produced %d items", len(master_list))
-        if master_list:
-            _LOGGER.debug("async_get_all_data sample: %s", master_list[:5])
-
-        # ---- devices ----
-        devices_list: list[Dict[str, Any]] = []
-        try:
-            devices_result = await self.async_get_devices_data()
-            if isinstance(devices_result, dict):
-                candidate = devices_result.get("devices", [])
-            else:
-                candidate = devices_result
-
-            if isinstance(candidate, (list, tuple)):
-                devices_list = list(candidate)
-            _LOGGER.debug("AZR/api: async_get_all_data: fetched %d devices", len(devices_list))
-        except Exception as exc:
-            _LOGGER.debug("AZR/api: async_get_all_data: failed to fetch devices: %s", exc)
-            devices_list = []
-
-        # ---- master settings (pro master number Target Power) ----
-        settings: Dict[str, Any] = {}
-        try:
-            settings = await self.async_get_master_settings()
-        except Exception as exc:
-            _LOGGER.debug("AZR/api: async_get_all_data: failed to fetch settings: %s", exc)
-            settings = {}
+        master_list: List[Dict[str, Any]] = []
+        _flatten(power, "power", master_list)
+        _flatten(status, "status", master_list)
 
         return {
             "master_data": master_list,
-            "devices": devices_list,
+            "devices": devices,
             "settings": settings,
         }
 
     # -------------------------------------------------------------------------
-    # Master ovládání
+    # Master write operations
     # -------------------------------------------------------------------------
 
     async def async_set_master_boost(self, enable: bool) -> None:
-        """Turn Master Boost ON/OFF."""
-        url = f"{self.base}{BOOST_PATH}"
         payload = {"data": {"boost": 1 if enable else 0}}
-        _LOGGER.debug("POST boost -> %s payload=%s", url, payload)
-
-        async with self._session.post(url, json=payload, ssl=self._verify_ssl, headers=self._headers()) as resp:
-            resp.raise_for_status()
+        await self._api_post(API_MASTER_BOOST, payload)
 
     async def async_set_master_target_power(self, target_power_w: int) -> None:
-        """Set Master regulation.target_power_w via /api/v1/settings."""
-
-        # clamp
-        clamped = max(-1000, min(1000, int(target_power_w)))
-        if clamped != target_power_w:
-            _LOGGER.debug(
-                "AZR/api: Master target_power_w %s out of range, clamped to %s",
-                target_power_w,
-                clamped,
-            )
-
-        # 1) read current settings
-        settings = await self.async_get_master_settings()
-        if not isinstance(settings, dict) or not settings:
-            _LOGGER.warning(
-                "AZR/api: async_set_master_target_power: invalid settings: %s",
-                settings,
-            )
+        """Writes settings.regulation.target_power_w via POST /settings."""
+        try:
+            value = int(target_power_w)
+        except Exception:
+            _LOGGER.warning("invalid target_power_w=%r", target_power_w)
             return
 
-        # 2) modify regulation.target_power_w
+        # clamp using const
+        if value < MASTER_TARGET_POWER_MIN:
+            value = MASTER_TARGET_POWER_MIN
+        elif value > MASTER_TARGET_POWER_MAX:
+            value = MASTER_TARGET_POWER_MAX
+
+        settings = await self.async_get_settings()
         regulation = settings.setdefault("regulation", {})
-        regulation["target_power_w"] = clamped
+        regulation["target_power_w"] = value
 
-        # 3) send POST
         payload = {"data": settings}
-        url = f"{self.base}{SETTINGS_PATH}"
-
-        _LOGGER.debug(
-            "AZR/api: POST Master settings update -> %s (target_power_w=%s)",
-            url,
-            clamped,
-        )
-
-        async with self._session.post(
-            url,
-            json=payload,
-            ssl=self._verify_ssl,
-            headers=self._headers(),
-        ) as resp:
-            _LOGGER.debug(
-                "AZR/api: POST Master settings HTTP status: %s", resp.status
-            )
-            resp.raise_for_status()
+        await self._api_post(API_SETTINGS, payload)
 
     # -------------------------------------------------------------------------
-    # Device ovládání (boost + settings)
+    # Device operations
     # -------------------------------------------------------------------------
 
     async def async_set_device_boost(self, device_id: int, enable: bool) -> None:
-        """Turn Boost ON/OFF for a specific device (by common.id)."""
-        url = f"{self.base}{DEVICE_BOOST_PATH}"
+        try:
+            dev_id_int = int(device_id)
+        except Exception:
+            _LOGGER.warning("invalid device_id=%r", device_id)
+            return
+
         payload = {
             "data": {
-                "device": {
-                    "common": {
-                        "id": int(device_id),
-                    }
-                },
+                "device": {"common": {"id": dev_id_int}},
                 "boost": 1 if enable else 0,
             }
         }
-
-        _LOGGER.debug(
-            "AZR/api: POST device boost -> %s payload=%s",
-            url,
-            payload,
-        )
-
-        async with self._session.post(
-            url,
-            json=payload,
-            ssl=self._verify_ssl,
-            headers=self._headers(),
-        ) as resp:
-            text = await resp.text()
-            _LOGGER.debug(
-                "AZR/api: device boost response status=%s body=%s",
-                resp.status,
-                text[:200],
-            )
-            resp.raise_for_status()
+        await self._api_post(API_DEVICE_BOOST, payload)
 
     async def async_post_device_settings(self, device_payload: Dict[str, Any]) -> None:
-        """
-        Pošle kompletní JSON jedné jednotky na /api/v1/device/settings.
-
-        Očekává, že device_payload má strukturu:
-        {
-            "deviceType": "...",
-            "common": {..., "id": ...},
-            "power": {...},
-            "settings": [...]
-        }
-        a my ho zabalíme do {"data": device_payload}.
-        """
-        url = f"{self.base}{DEVICE_SETTINGS_PATH}"
         payload = {"data": device_payload}
+        await self._api_post(API_DEVICE_SETTINGS, payload)
 
-        _LOGGER.debug(
-            "AZR/api: POST device settings -> %s payload=%s",
-            url,
-            payload,
-        )
 
-        async with self._session.post(
-            url,
-            json=payload,
-            ssl=self._verify_ssl,
-            headers=self._headers(),
-        ) as resp:
-            text = await resp.text()
-            _LOGGER.debug(
-                "AZR/api: POST device settings response status=%s body=%s",
-                resp.status,
-                text[:300],
-            )
-            resp.raise_for_status()
+# End Of File

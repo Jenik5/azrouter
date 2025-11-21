@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Połączyć z AZ Router",
+        "description": "Wprowadź dane logowania do interfejsu webowego AZ Router.",
+        "data": {
+          "host": "Host lub URL",
+          "username": "Nazwa użytkownika",
+          "password": "Hasło",
+          "verify_ssl": "Weryfikować SSL"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nie można się połączyć lub nieprawidłowe dane logowania."
+    }
+  },
+  "services": {
+    "set_master_boost": {
+      "name": "Master Boost",
+      "description": "Włącza lub wyłącza Master Boost na głównej jednostce AZ Router."
+    },
+    "set_device_boost": {
+      "name": "Boost urządzenia",
+      "description": "Włącza lub wyłącza Boost dla jednego lub wielu urządzeń."
+    },
+    "set_device_type_1_max_power": {
+      "name": "Smart Slave – Maks. moc",
+      "description": "Ustawia maksymalną dopuszczalną moc dla urządzeń Smart Slave (deviceType=1)."
+    },
+    "set_device_type_1_temperatures": {
+      "name": "Smart Slave – Temperatury",
+      "description": "Ustawia temperaturę docelową i/lub temperaturę Boost dla urządzeń Smart Slave (deviceType=1)."
+    }
+  }
+}

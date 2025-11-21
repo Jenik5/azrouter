@@ -1,7 +1,12 @@
 # custom_components/azrouter/devices/sensor.py
 # -----------------------------------------------------------
-# Společné entity pro zařízení (device-level senzory)
-# - DeviceBase: nadstavba nad BaseEntity
+# Shared entity base classes for device-level and master sensors.
+#
+# - DeviceBase:
+#     Base for sensors bound to a specific device (deviceType_1, deviceType_4, ...)
+#
+# - MasterBase:
+#     Base for sensors and switches bound to the master AZ Router unit.
 # -----------------------------------------------------------
 
 from __future__ import annotations
@@ -22,7 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class DeviceBase(BaseEntity):
-    """Společný základ pro všechny device senzory (deviceType_1, deviceType_4, ...)."""
+    """Shared base for all device-level sensors."""
 
     def __init__(
         self,
@@ -37,7 +42,7 @@ class DeviceBase(BaseEntity):
         icon: str | None = None,
         entity_category: EntityCategory | None = None,
         model: str | None = None,
-    ):
+    ) -> None:
         super().__init__(
             coordinator=coordinator,
             entry=entry,
@@ -57,7 +62,7 @@ class DeviceBase(BaseEntity):
             self._attr_icon = icon
 
         common = device.get("common", {}) if isinstance(device, dict) else {}
-        self._device_id = common.get("id")  # budeme podle toho hledat v coordinator.data["devices"]
+        self._device_id = common.get("id")
         self._router = SimpleNamespace(
             serial_number=entry.entry_id,
         )
@@ -74,6 +79,7 @@ class DeviceBase(BaseEntity):
             self._attr_unique_id = f"{entry.entry_id}_device_X_{key}"
 
         from homeassistant.util import slugify
+
         name_slug = slugify(self._device_cfg.name or f"device_{dev_id}")
         dev_id_str = str(dev_id) if dev_id is not None else "X"
         object_id = f"{name_slug}_id_{dev_id_str}_{key}"
@@ -104,16 +110,11 @@ class DeviceBase(BaseEntity):
             model=model,
         )
 
-    def _read_raw(self):
-        """
-        Najde a vrátí hodnotu z coordinator.data["devices"]
-        podle self.device_id a self._raw_path.
-        """
-
+    def _read_raw(self) -> Any:
+        """Find and return a value from coordinator.data['devices'] for this device."""
         data = self.coordinator.data or {}
         devices = data.get("devices") or []
 
-        # najdeme zařízení podle ID
         dev = None
         for d in devices:
             try:
@@ -127,9 +128,8 @@ class DeviceBase(BaseEntity):
         if dev is None:
             return None
 
-        # parse path např. "power.output.0"
         parts = self._raw_path.split(".")
-        cur = dev
+        cur: Any = dev
         try:
             for p in parts:
                 if isinstance(cur, list):
@@ -140,8 +140,9 @@ class DeviceBase(BaseEntity):
         except Exception:
             return None
 
+
 class MasterBase(BaseEntity):
-    """Společný základ pro master senzory (hlavní AZ Router)."""
+    """Shared base for master-level sensors and switches."""
 
     def __init__(
         self,
@@ -154,7 +155,7 @@ class MasterBase(BaseEntity):
         devclass: SensorDeviceClass | None = None,
         icon: str | None = None,
         entity_category: EntityCategory | None = None,
-    ):
+    ) -> None:
         super().__init__(
             coordinator=coordinator,
             entry=entry,
@@ -173,7 +174,7 @@ class MasterBase(BaseEntity):
 
     @property
     def device_info(self) -> DeviceInfo:
-        """Device registry entry pro master jednotku."""
+        """Device registry entry for the master unit."""
         ident = f"{self._entry.entry_id}_master"
 
         return DeviceInfo(
@@ -184,10 +185,29 @@ class MasterBase(BaseEntity):
         )
 
     def _read_raw(self) -> Any:
-        """Čte hodnotu z coordinator.data podle self._raw_path."""
-        payload = getattr(self.coordinator, "data", None)
-        if payload is None:
-            return None
-        return _get_value(payload, self._raw_path)
+        """Read a value for this master entity based on self._raw_path.
 
+        Supports:
+        - flattened list in coordinator.data["master_data"] (path/value pairs),
+        - structured lookup via _get_value(...) as a fallback.
+        """
+        data = getattr(self.coordinator, "data", None)
+        if not data:
+            return None
+
+        # Preferred: flattened master_data list
+        master = data.get("master_data")
+        if isinstance(master, list):
+            for item in master:
+                try:
+                    if item.get("path") == self._raw_path:
+                        return item.get("value")
+                except Exception:
+                    continue
+
+        # Fallback: try structured lookup in the root payload
+        try:
+            return _get_value(data, self._raw_path)
+        except Exception:
+            return None
 # End Of File

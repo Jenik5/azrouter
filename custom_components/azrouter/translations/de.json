@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "AZ Router verbinden",
+        "description": "Gib die Zugangsdaten für die Weboberfläche des AZ Routers ein.",
+        "data": {
+          "host": "Host oder URL",
+          "username": "Benutzername",
+          "password": "Passwort",
+          "verify_ssl": "SSL prüfen"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Verbindung nicht möglich oder ungültige Anmeldedaten."
+    }
+  },
+  "services": {
+    "set_master_boost": {
+      "name": "Master Boost",
+      "description": "Master Boost der Haupteinheit aktivieren oder deaktivieren."
+    },
+    "set_device_boost": {
+      "name": "Geräte-Boost",
+      "description": "Boost für ein oder mehrere Geräte aktivieren oder deaktivieren."
+    },
+    "set_device_type_1_max_power": {
+      "name": "Smart Slave – Maximalleistung",
+      "description": "Maximale Leistungsaufnahme für Smart-Slave-Geräte (deviceType=1) einstellen."
+    },
+    "set_device_type_1_temperatures": {
+      "name": "Smart Slave – Temperaturen",
+      "description": "Ziel- und/oder Boost-Temperatur für Smart-Slave-Geräte (deviceType=1) einstellen."
+    }
+  }
+}

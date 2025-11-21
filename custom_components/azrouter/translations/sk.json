@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pripojiť AZ Router",
+        "description": "Zadaj prihlasovacie údaje pre webové rozhranie AZ Routeru.",
+        "data": {
+          "host": "Host alebo URL",
+          "username": "Používateľ",
+          "password": "Heslo",
+          "verify_ssl": "Overovať SSL"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Nie je možné sa pripojiť alebo sú nesprávne prihlasovacie údaje."
+    }
+  },
+  "services": {
+    "set_master_boost": {
+      "name": "Master Boost",
+      "description": "Zapne alebo vypne Master Boost na hlavnej jednotke AZ Routeru."
+    },
+    "set_device_boost": {
+      "name": "Boost zariadenia",
+      "description": "Zapne alebo vypne Boost na jednom alebo viacerých zariadeniach."
+    },
+    "set_device_type_1_max_power": {
+      "name": "Smart Slave – Max. výkon",
+      "description": "Nastaví maximálny povolený výkon pre Smart Slave zariadenia (deviceType=1)."
+    },
+    "set_device_type_1_temperatures": {
+      "name": "Smart Slave – Teploty",
+      "description": "Nastaví cieľovú a/alebo Boost teplotu pre Smart Slave zariadenia (deviceType=1)."
+    }
+  }
+}
