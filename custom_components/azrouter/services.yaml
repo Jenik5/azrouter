@@ -35,7 +35,19 @@ set_device_boost:
       required: true
       selector:
         boolean: {}
-
+set_device_type_1_block_solar_heating:
+  name: Set Block Solar Heating
+  description: Enable or disable block_solar_heating for a Smart Slave (deviceType=1)
+  target:
+    device:
+      integration: azrouter
+  fields:
+    enabled:
+      name: Enabled
+      description: True = block solar heating, False = allow solar heating
+      required: true
+      selector:
+        boolean:
 set_device_type_1_max_power:
   name: Smart Slave – Max Power
   description: Set the maximum allowed load power for Smart Slave devices (deviceType=1).

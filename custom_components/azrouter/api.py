@@ -284,5 +284,136 @@ class AzRouterClient:
         payload = {"data": device_payload}
         await self._api_post(API_DEVICE_SETTINGS, payload)
 
+    # -------------------------------------------------------------------------
+    # DeviceType 1 – obecná nastavení v sekci "power"/"settings[*].power"
+    # -------------------------------------------------------------------------
+
+    async def async_set_device_type_1_power_setting(
+        self,
+        device_id: int,
+        path: str,
+        value: int | float,
+    ) -> None:
+        """
+        Obecný setter pro device_type_1 "power" nastavení.
+
+        -   path == "maxPower":
+            zapíše do root["power"]["maxPower"]
+            a zároveň do settings[*].power["max"]
+        -   jiné path (např. "targetTemperature", "targetTemperatureBoost",
+            "block_solar_heating"):
+            zapíše do settings[*].power[path] ve všech profilech (summer/winter).
+        """
+
+        DEVICE_TYPE = "1"
+
+        # 1) načteme aktuální seznam zařízení
+        try:
+            devices = await self.async_get_devices()
+        except Exception as exc:
+            _LOGGER.warning(
+                "AZR/api: async_set_device_type_1_power_setting: "
+                "failed to fetch devices: %s",
+                exc,
+            )
+            return
+
+        if not isinstance(devices, list):
+            _LOGGER.warning(
+                "AZR/api: async_set_device_type_1_power_setting: "
+                "invalid devices container: %r",
+                devices,
+            )
+            return
+
+        # 2) najdeme konkrétní device_type_1 s daným common.id
+        root: Dict[str, Any] | None = None
+        for dev in devices:
+            try:
+                dev_type = str(dev.get("deviceType"))
+                common = dev.get("common", {}) or {}
+                cid = int(common.get("id", -1))
+            except Exception:
+                continue
+
+            if dev_type == DEVICE_TYPE and cid == device_id:
+                root = dev
+                break
+
+        if not root:
+            _LOGGER.warning(
+                "AZR/api: async_set_device_type_1_power_setting: "
+                "device_type=%s id=%s not found in devices",
+                DEVICE_TYPE,
+                device_id,
+            )
+            return
+
+        # 3) normalizace hodnoty na int
+        try:
+            ival = int(round(float(value)))
+        except Exception:
+            _LOGGER.warning(
+                "AZR/api: async_set_device_type_1_power_setting: cannot cast %r to int "
+                "for device %s, path=%s",
+                value,
+                device_id,
+                path,
+            )
+            return
+
+        settings_list = root.get("settings") or []
+        if not isinstance(settings_list, list):
+            settings_list = []
+
+        # 4) zápis hodnot podle typu path
+        if path == "maxPower":
+            # maxPower – root.power.maxPower + settings[*].power.max
+            power_root = root.setdefault("power", {})
+            power_root["maxPower"] = ival
+
+            for entry in settings_list:
+                p = entry.setdefault("power", {})
+                p["max"] = ival
+
+            _LOGGER.debug(
+                "AZR/api: device_type_1 id=%s set power.maxPower=%s "
+                "and settings[*].power.max=%s",
+                device_id,
+                ival,
+                ival,
+            )
+        else:
+            # ostatní – do settings[*].power[path] ve všech profilech (summer/winter)
+            if not settings_list:
+                _LOGGER.warning(
+                    "AZR/api: async_set_device_type_1_power_setting: no settings[] "
+                    "for device %s (path=%s)",
+                    device_id,
+                    path,
+                )
+                return
+
+            for entry in settings_list:
+                p = entry.setdefault("power", {})
+                p[path] = ival
+
+            _LOGGER.debug(
+                "AZR/api: device_type_1 id=%s set settings[*].power.%s=%s",
+                device_id,
+                path,
+                ival,
+            )
+
+        # 5) sestavit payload a poslat na /api/v1/device/settings
+        device_payload = {
+            "deviceType": DEVICE_TYPE,
+            "common": root.get("common", {"id": device_id}),
+            "power": root.get("power", {}),
+            "settings": settings_list,
+        }
+
+        await self.async_post_device_settings(device_payload)
+
 
 # End Of File

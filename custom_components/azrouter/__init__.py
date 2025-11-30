@@ -34,6 +34,7 @@ DEVICE_TYPE_MODEL: Dict[str, str] = {
 
 SERVICE_SET_MASTER_BOOST = "set_master_boost"
 SERVICE_SET_DEVICE_BOOST = "set_device_boost"
+SERVICE_SET_DEVICE_TYPE_1_BLOCK_SOLAR_HEATING = "set_device_type_1_block_solar_heating"
 SERVICE_SET_DEVICE_TYPE_1_TEMPS = "set_device_type_1_temperatures"
 SERVICE_SET_DEVICE_TYPE_1_MAX_POWER = "set_device_type_1_max_power"
 SERVICE_SET_DEVICE_TYPE_4_MANUAL_POWER = "set_device_type_4_manual_power"
@@ -228,8 +229,52 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     )
 
     # =====================================================================================
-    #   SERVICES FOR DEVICE_TYPE_1 (Smart Slave) – delegated to number.py
+    #   SERVICES FOR DEVICE_TYPE_1 (Smart Slave) – delegated to number.py / switch.py
     # =====================================================================================
+    #
+    async def handle_set_device_type_1_block_solar_heating(call):
+        enabled = bool(call.data.get("enabled"))
+        dev_reg = dr.async_get(hass)
+
+        ha_device_ids = call.data.get("device_id") or []
+        if isinstance(ha_device_ids, str):
+            ha_device_ids = [ha_device_ids]
+
+        _LOGGER.debug(
+            "AZR/__init__: service set_device_type_1_block_solar_heating called for HA devices=%s enabled=%s",
+            ha_device_ids,
+            enabled,
+        )
+
+        for ha_dev_id in ha_device_ids:
+            device = dev_reg.async_get(ha_dev_id)
+            if not device:
+                _LOGGER.warning("No device registry entry for id=%s", ha_dev_id)
+                continue
+
+            az_device_id = None
+
+            for domain, ident in device.identifiers:
+                if domain != DOMAIN:
+                    continue
+                if isinstance(ident, str) and "_device_" in ident:
+                    try:
+                        az_device_id = int(ident.split("_device_")[1])
+                    except:
+                        pass
+
+            if az_device_id is None:
+                _LOGGER.warning("Could not resolve AZ device id for HA device %s", ha_dev_id)
+                continue
+
+            await client.async_set_device_type_1_power_setting(
+                az_device_id,
+                "block_solar_heating",
+                1 if enabled else 0,
+            )
+
+        await coordinator.async_request_refresh()
+
 
     async def handle_set_device_type_1_max_power(call):
         """Service handler azrouter.set_device_type_1_max_power.
@@ -293,6 +338,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
 
         await coordinator.async_request_refresh()
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_DEVICE_TYPE_1_BLOCK_SOLAR_HEATING,
+        handle_set_device_type_1_block_solar_heating,
+    )
 
     hass.services.async_register(
         DOMAIN,

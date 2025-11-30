@@ -1,7 +1,7 @@
 {
   "domain": "azrouter",
   "name": "A-Z Router",
-  "version": "2025.11.21.1",
+  "version": "2025.11.30.1",
   "documentation": "https://github.com/Jenik5/azrouter/blob/main/docs/installation.html",
   "issue_tracker": "https://github.com/Jenik5/azrouter/issues",
   "codeowners": [
