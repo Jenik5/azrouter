@@ -4,7 +4,7 @@
 [![HACS Default](https://img.shields.io/badge/HACS-Default-blue.svg)](https://hacs.xyz)
 ![Version](https://img.shields.io/github/v/release/Jenik5/azrouter)
 ![Downloads](https://img.shields.io/github/downloads/Jenik5/azrouter/total)
-![License](https://img.shields.io/github/license/Jenik5/azrouter)
+![License](https://img.shields.io/github/license/Jenik5/azrouter?style=flat&v=1)
 
 *(🇨🇿 For Czech version click here → [Czech README](#-česky---az-router---home-assistant-integrace))*
 
