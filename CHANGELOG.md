@@ -4,6 +4,15 @@
 
 > 🔴 **Important migration warning / Dulezite migracni upozorneni:** This update can recreate some entities with new names or unique IDs. Old entities can disappear and new ones can be created. After upgrade, review dashboards, custom panels, automations, and helpers that reference AZ Router entities.
 
+## 2026.03.10.2 - 2026-03-10
+
+### Changed
+- Fixed `services.yaml` to use supported `device_id` selectors instead of invalid device-filter targets.
+- Sorted manifest keys to satisfy Hassfest validation.
+- Removed unsupported `domains` from `hacs.json`.
+- Added local integration brand assets under `custom_components/azrouter/brand/`.
+- Aligned the repository with HACS validation requirements before default repository submission.
+
 ## 2026.03.10.1 - 2026-03-10
 
 ### Added
