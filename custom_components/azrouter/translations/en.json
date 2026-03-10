@@ -25,6 +25,70 @@
       "name": "Device Boost",
       "description": "Enable or disable Boost on one or more devices."
     },
+    "set_device_type_1_keep_heated": {
+      "name": "Smart Slave – 3.1 Keep Heated",
+      "description": "Enable or disable 3.1 Keep Heated (ignore_cycle) for Smart Slave devices (deviceType=1).",
+      "fields": {
+        "enabled": {
+          "name": "Enabled",
+          "description": "True = enabled, False = disabled."
+        }
+      }
+    },
+    "set_device_type_1_block_solar_heating": {
+      "name": "Smart Slave – 3.2 Block Solar Heating",
+      "description": "Enable or disable 3.2 Block Solar Heating (block_solar_heating) for Smart Slave devices (deviceType=1).",
+      "fields": {
+        "enabled": {
+          "name": "Enabled",
+          "description": "True = block solar heating, False = allow solar heating."
+        }
+      }
+    },
+    "set_device_type_1_block_heating_from_battery": {
+      "name": "Smart Slave – 3.3 Block Heating From Battery",
+      "description": "Enable or disable 3.3 Block Heating From Battery (block_heating_from_battery) for Smart Slave devices (deviceType=1).",
+      "fields": {
+        "enabled": {
+          "name": "Enabled",
+          "description": "True = block heating from battery, False = allow heating from battery."
+        }
+      }
+    },
+    "set_device_type_1_allow_solar_heating_only_in_time_window": {
+      "name": "Smart Slave – 3.4 Only In Time Window",
+      "description": "Enable or disable the 3.4 Allow Solar Heating Only In Time Window restriction for Smart Slave devices (deviceType=1).",
+      "fields": {
+        "enabled": {
+          "name": "Enabled",
+          "description": "True = allow solar heating only in the configured time window, False = no time-window restriction."
+        }
+      }
+    },
+    "set_device_type_1_boost_mode": {
+      "name": "Smart Slave – 4.2 Boost Mode",
+      "description": "Set 4.2 Boost Mode for Smart Slave devices (deviceType=1).",
+      "fields": {
+        "mode": {
+          "name": "Mode",
+          "description": "One of: manual, hdo, window, window+hdo."
+        }
+      }
+    },
+    "set_device_type_1_connected_phase": {
+      "name": "Smart Slave – Connected Phase",
+      "description": "Connect or disconnect the selected phase (1.1/1.2/1.3 Connected L1/L2/L3) for Smart Slave devices (deviceType=1).",
+      "fields": {
+        "phase": {
+          "name": "Phase",
+          "description": "Phase number (1, 2, or 3)."
+        },
+        "enabled": {
+          "name": "Enabled",
+          "description": "True = phase connected, False = phase disconnected."
+        }
+      }
+    },
     "set_device_type_1_max_power": {
       "name": "Smart Slave – Max Power",
       "description": "Set the maximum allowed load power for Smart Slave devices (deviceType=1)."
@@ -32,6 +96,96 @@
     "set_device_type_1_temperatures": {
       "name": "Smart Slave – Temperatures",
       "description": "Set target and/or Boost temperatures for Smart Slave devices (deviceType=1)."
+    },
+    "set_device_type_4_block_charging": {
+      "name": "Wallbox – 1. Block Charging",
+      "description": "Enable or disable 1. Block Charging for Wallbox devices (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Enabled",
+          "description": "True = block charging, False = allow charging."
+        }
+      }
+    },
+    "set_device_type_4_prioritize_when_connected": {
+      "name": "Wallbox – 2. Prioritize When Connected",
+      "description": "Enable or disable 2. Prioritize When Connected (mode[0].enabled) for Wallbox devices (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Enabled",
+          "description": "True = mode enabled, False = mode disabled."
+        }
+      }
+    },
+    "set_device_type_4_block_solar_charging": {
+      "name": "Wallbox – 3. Block Solar Charging",
+      "description": "Enable or disable 3. Block Solar Charging for Wallbox devices (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Enabled",
+          "description": "True = block solar charging, False = allow solar charging."
+        }
+      }
+    },
+    "set_device_type_4_block_charging_from_battery": {
+      "name": "Wallbox – 4. Block Charging From Battery",
+      "description": "Enable or disable 4. Block Charging From Battery for Wallbox devices (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Enabled",
+          "description": "True = block charging from battery, False = allow charging from battery."
+        }
+      }
+    },
+    "set_device_type_4_allow_solar_charging_only_in_time_window": {
+      "name": "Wallbox – 6.1 Only In Time Window",
+      "description": "Enable or disable the 6.1 Allow Solar Charging Only In Time Window restriction for Wallbox devices (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Enabled",
+          "description": "True = allow solar charging only in the configured time window, False = no time-window restriction."
+        }
+      }
+    },
+    "set_device_type_4_trigger_phase": {
+      "name": "Wallbox – 5. Triggering Phase",
+      "description": "Set 5. Triggering Phase for Wallbox devices (deviceType=4).",
+      "fields": {
+        "phase": {
+          "name": "Phase",
+          "description": "Select L1, L2, or L3."
+        }
+      }
+    },
+    "set_device_type_4_apply_only_if_cloud_is_offline": {
+      "name": "Wallbox – 8. Only If Cloud Is Offline",
+      "description": "Enable or disable 8. Apply Only If Cloud Is Offline for Wallbox devices (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Enabled",
+          "description": "True = apply only when the cloud is offline, False = apply always."
+        }
+      }
+    },
+    "set_device_type_4_time_window_charging_enabled": {
+      "name": "Wallbox – 9.1 Time Window Charging",
+      "description": "Enable or disable 9.1 Time Window Charging Enabled (mode[2].enabled) for Wallbox devices (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Enabled",
+          "description": "True = mode enabled, False = mode disabled."
+        }
+      }
+    },
+    "set_device_type_4_hdo_charging_enabled": {
+      "name": "Wallbox – 10.1 HDO Charging",
+      "description": "Enable or disable 10.1 HDO Charging Enabled (mode[3].enabled) for Wallbox devices (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Enabled",
+          "description": "True = mode enabled, False = mode disabled."
+        }
+      }
     },
     "set_device_type_4_manual_power": {
       "name": "Wallbox – Manual Charging Power",

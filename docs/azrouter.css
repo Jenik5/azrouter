@@ -2,6 +2,12 @@
     --az-primary: #0b3e70;      /* tmavší modrá */
     --az-primary-light: #12518f;
     --az-accent: #f28b2b;       /* oranžový akcent */
+    --az-danger: #a32020;
+    --az-danger-bg: #fff2f2;
+    --az-danger-border: #f0b4b4;
+    --az-note-bg: #fff8ef;
+    --az-note-border: #f4d0a0;
+    --az-note-text: #7a4b12;
     --az-bg: #f3f5f8;
     --az-card-bg: #ffffff;
     --az-border: #dde2ea;
@@ -94,6 +100,41 @@ body {
     margin: 0;
     font-size: 0.95rem;
     color: var(--az-muted);
+}
+
+.warning-banner,
+.note-banner {
+    margin: 1.25rem 0 1.75rem;
+    padding: 1rem 1.1rem;
+    border-radius: var(--az-radius-lg);
+    border: 1px solid;
+}
+
+.warning-banner {
+    background: linear-gradient(135deg, #fff8f8, var(--az-danger-bg));
+    border-color: var(--az-danger-border);
+    color: var(--az-danger);
+}
+
+.note-banner {
+    background: linear-gradient(135deg, #fffdf8, var(--az-note-bg));
+    border-color: var(--az-note-border);
+    color: var(--az-note-text);
+}
+
+.warning-banner p,
+.note-banner p {
+    margin: 0;
+}
+
+.warning-banner strong,
+.note-banner strong {
+    color: inherit;
+}
+
+.warning-banner code,
+.note-banner code {
+    background: rgba(255, 255, 255, 0.65);
 }
 
 /* kroková struktura */

@@ -25,6 +25,70 @@
       "name": "Boost zařízení",
       "description": "Zapne nebo vypne Boost na jednom nebo více zařízeních."
     },
+    "set_device_type_1_keep_heated": {
+      "name": "Smart Slave – 3.1 Udržovat ohřáté",
+      "description": "Zapne nebo vypne funkci 3.1 Keep Heated (ignore_cycle) pro zařízení Smart Slave (deviceType=1).",
+      "fields": {
+        "enabled": {
+          "name": "Povoleno",
+          "description": "True = funkce zapnutá, False = vypnutá."
+        }
+      }
+    },
+    "set_device_type_1_block_solar_heating": {
+      "name": "Smart Slave – 3.2 Blokovat ohřev ze soláru",
+      "description": "Zapne nebo vypne funkci 3.2 Block Solar Heating (block_solar_heating) pro zařízení Smart Slave (deviceType=1).",
+      "fields": {
+        "enabled": {
+          "name": "Povoleno",
+          "description": "True = blokovat ohřev ze soláru, False = povolit ohřev ze soláru."
+        }
+      }
+    },
+    "set_device_type_1_block_heating_from_battery": {
+      "name": "Smart Slave – 3.3 Blokovat ohřev z baterie",
+      "description": "Zapne nebo vypne funkci 3.3 Block Heating From Battery (block_heating_from_battery) pro zařízení Smart Slave (deviceType=1).",
+      "fields": {
+        "enabled": {
+          "name": "Povoleno",
+          "description": "True = blokovat ohřev z baterie, False = povolit ohřev z baterie."
+        }
+      }
+    },
+    "set_device_type_1_allow_solar_heating_only_in_time_window": {
+      "name": "Smart Slave – 3.4 Pouze v časovém okně",
+      "description": "Zapne nebo vypne omezení 3.4 Allow Solar Heating Only In Time Window (allowed_solar_heating_time.enabled) pro zařízení Smart Slave (deviceType=1).",
+      "fields": {
+        "enabled": {
+          "name": "Povoleno",
+          "description": "True = ohřev ze soláru jen v časovém okně, False = bez omezení časovým oknem."
+        }
+      }
+    },
+    "set_device_type_1_boost_mode": {
+      "name": "Smart Slave – 4.2 Režim Boost",
+      "description": "Nastaví režim 4.2 Boost Mode pro zařízení Smart Slave (deviceType=1).",
+      "fields": {
+        "mode": {
+          "name": "Režim",
+          "description": "Jedna z hodnot: manual, hdo, window, window+hdo."
+        }
+      }
+    },
+    "set_device_type_1_connected_phase": {
+      "name": "Smart Slave – Připojení fáze",
+      "description": "Připojí nebo odpojí vybranou fázi (1.1/1.2/1.3 Connected L1/L2/L3) pro zařízení Smart Slave (deviceType=1).",
+      "fields": {
+        "phase": {
+          "name": "Fáze",
+          "description": "Číslo fáze (1, 2 nebo 3)."
+        },
+        "enabled": {
+          "name": "Povoleno",
+          "description": "True = fáze připojena, False = fáze odpojena."
+        }
+      }
+    },
     "set_device_type_1_max_power": {
       "name": "Smart Slave – Max. výkon",
       "description": "Nastaví maximální zatížení pro zařízení Smart Slave (deviceType=1)."
@@ -32,6 +96,96 @@
     "set_device_type_1_temperatures": {
       "name": "Smart Slave – Teploty",
       "description": "Nastaví cílovou a/nebo Boost teplotu pro zařízení Smart Slave (deviceType=1)."
+    },
+    "set_device_type_4_block_charging": {
+      "name": "Wallbox – 1. Blokovat nabíjení",
+      "description": "Zapne nebo vypne funkci 1. Block Charging pro zařízení Wallbox (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Povoleno",
+          "description": "True = blokovat nabíjení, False = povolit nabíjení."
+        }
+      }
+    },
+    "set_device_type_4_prioritize_when_connected": {
+      "name": "Wallbox – 2. Upřednostnit při připojení",
+      "description": "Zapne nebo vypne funkci 2. Prioritize When Connected (mode[0].enabled) pro zařízení Wallbox (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Povoleno",
+          "description": "True = režim zapnutý, False = režim vypnutý."
+        }
+      }
+    },
+    "set_device_type_4_block_solar_charging": {
+      "name": "Wallbox – 3. Blokovat solární nabíjení",
+      "description": "Zapne nebo vypne funkci 3. Block Solar Charging pro zařízení Wallbox (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Povoleno",
+          "description": "True = blokovat solární nabíjení, False = povolit solární nabíjení."
+        }
+      }
+    },
+    "set_device_type_4_block_charging_from_battery": {
+      "name": "Wallbox – 4. Blokovat nabíjení z baterie",
+      "description": "Zapne nebo vypne funkci 4. Block Charging From Battery pro zařízení Wallbox (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Povoleno",
+          "description": "True = blokovat nabíjení z baterie, False = povolit nabíjení z baterie."
+        }
+      }
+    },
+    "set_device_type_4_allow_solar_charging_only_in_time_window": {
+      "name": "Wallbox – 6.1 Pouze v časovém okně",
+      "description": "Zapne nebo vypne omezení 6.1 Allow Solar Charging Only In Time Window pro zařízení Wallbox (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Povoleno",
+          "description": "True = povolit solární nabíjení jen v časovém okně, False = bez omezení časovým oknem."
+        }
+      }
+    },
+    "set_device_type_4_trigger_phase": {
+      "name": "Wallbox – 5. Spouštěcí fáze",
+      "description": "Nastaví hodnotu 5. Triggering Phase pro zařízení Wallbox (deviceType=4).",
+      "fields": {
+        "phase": {
+          "name": "Fáze",
+          "description": "Vyber L1, L2 nebo L3."
+        }
+      }
+    },
+    "set_device_type_4_apply_only_if_cloud_is_offline": {
+      "name": "Wallbox – 8. Jen když je cloud offline",
+      "description": "Zapne nebo vypne funkci 8. Apply Only If Cloud Is Offline pro zařízení Wallbox (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Povoleno",
+          "description": "True = aplikovat jen při offline cloudu, False = aplikovat vždy."
+        }
+      }
+    },
+    "set_device_type_4_time_window_charging_enabled": {
+      "name": "Wallbox – 9.1 Časové okno nabíjení",
+      "description": "Zapne nebo vypne režim 9.1 Time Window Charging Enabled (mode[2].enabled) pro zařízení Wallbox (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Povoleno",
+          "description": "True = režim zapnutý, False = režim vypnutý."
+        }
+      }
+    },
+    "set_device_type_4_hdo_charging_enabled": {
+      "name": "Wallbox – 10.1 HDO nabíjení",
+      "description": "Zapne nebo vypne režim 10.1 HDO Charging Enabled (mode[3].enabled) pro zařízení Wallbox (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Povoleno",
+          "description": "True = režim zapnutý, False = režim vypnutý."
+        }
+      }
     },
     "set_device_type_4_manual_power": {
       "name": "Wallbox – Manuální nabíjecí výkon",

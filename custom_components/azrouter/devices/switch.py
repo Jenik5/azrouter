@@ -18,9 +18,11 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 import logging
 import asyncio
+from time import monotonic
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from ..api import AzRouterClient
@@ -36,7 +38,8 @@ _LOGGER = logging.getLogger(__name__)
 class DeviceSwitchBase(DeviceBase, SwitchEntity):
     """Base class for all device-level switches."""
 
-    _REFRESH_DELAY = 0.8  # seconds, used after write before requesting refresh
+    _REFRESH_DELAY = 4.5  # give API time to settle before forcing a refresh
+    _OPTIMISTIC_WINDOW = 8.0
 
     def __init__(
         self,
@@ -63,6 +66,8 @@ class DeviceSwitchBase(DeviceBase, SwitchEntity):
             entity_category=None,
             model=model,
         )
+        self._optimistic_state: Optional[bool] = None
+        self._optimistic_until: float = 0.0
 
     def _parse_bool(self, value: Any) -> Optional[bool]:
         """Try to convert raw value to bool, return None if unknown."""
@@ -85,8 +90,22 @@ class DeviceSwitchBase(DeviceBase, SwitchEntity):
     @property
     def is_on(self) -> Optional[bool]:
         """Return the current switch state as boolean, if available."""
+        if self._optimistic_state is not None and monotonic() < self._optimistic_until:
+            return self._optimistic_state
         raw = self._read_raw()
         return self._parse_bool(raw)
+
+    def _handle_coordinator_update(self) -> None:
+        raw = self._parse_bool(self._read_raw())
+        if self._optimistic_state is not None:
+            now = monotonic()
+            if raw is not None and raw == self._optimistic_state:
+                self._optimistic_state = None
+                self._optimistic_until = 0.0
+            elif now >= self._optimistic_until:
+                self._optimistic_state = None
+                self._optimistic_until = 0.0
+        super()._handle_coordinator_update()
 
     async def _send_value(self, value: bool) -> None:  # pragma: no cover - abstract
         """Send new state to the device. Must be implemented by subclasses."""
@@ -94,14 +113,21 @@ class DeviceSwitchBase(DeviceBase, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on and request a refresh afterwards."""
+        self._optimistic_state = True
+        self._optimistic_until = monotonic() + self._OPTIMISTIC_WINDOW
+        self.async_write_ha_state()
         try:
             await self._send_value(True)
         except Exception as exc:  # noqa: BLE001
+            self._optimistic_state = None
+            self._optimistic_until = 0.0
+            self.async_write_ha_state()
             _LOGGER.error(
                 "DeviceSwitchBase: failed to send ON value for %s: %s",
                 getattr(self, "_attr_unique_id", "?"),
                 exc,
             )
+            raise HomeAssistantError(str(exc)) from exc
 
         if self._REFRESH_DELAY > 0:
             await asyncio.sleep(self._REFRESH_DELAY)
@@ -109,14 +135,21 @@ class DeviceSwitchBase(DeviceBase, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off and request a refresh afterwards."""
+        self._optimistic_state = False
+        self._optimistic_until = monotonic() + self._OPTIMISTIC_WINDOW
+        self.async_write_ha_state()
         try:
             await self._send_value(False)
         except Exception as exc:  # noqa: BLE001
+            self._optimistic_state = None
+            self._optimistic_until = 0.0
+            self.async_write_ha_state()
             _LOGGER.error(
                 "DeviceSwitchBase: failed to send OFF value for %s: %s",
                 getattr(self, "_attr_unique_id", "?"),
                 exc,
             )
+            raise HomeAssistantError(str(exc)) from exc
 
         if self._REFRESH_DELAY > 0:
             await asyncio.sleep(self._REFRESH_DELAY)
@@ -169,7 +202,8 @@ class DeviceBoostSwitch(DeviceSwitchBase):
 class MasterSwitchBase(MasterBase, SwitchEntity):
     """Base class for master-level switches (on the main AZ Router unit)."""
 
-    _REFRESH_DELAY = 0.0  # usually fast to update via /status
+    _REFRESH_DELAY = 4.5  # give API time to settle before forcing a refresh
+    _OPTIMISTIC_WINDOW = 8.0
 
     def __init__(
         self,
@@ -194,6 +228,8 @@ class MasterSwitchBase(MasterBase, SwitchEntity):
         )
         # Force normal toggle UI instead of two separate buttons
         self._attr_assumed_state = False
+        self._optimistic_state: Optional[bool] = None
+        self._optimistic_until: float = 0.0
 
     def _parse_bool(self, value: Any) -> Optional[bool]:
         """Try to convert raw value to bool, return None if unknown."""
@@ -216,8 +252,22 @@ class MasterSwitchBase(MasterBase, SwitchEntity):
     @property
     def is_on(self) -> Optional[bool]:
         """Return the current switch state as boolean, if available."""
+        if self._optimistic_state is not None and monotonic() < self._optimistic_until:
+            return self._optimistic_state
         raw = self._read_raw()
         return self._parse_bool(raw)
+
+    def _handle_coordinator_update(self) -> None:
+        raw = self._parse_bool(self._read_raw())
+        if self._optimistic_state is not None:
+            now = monotonic()
+            if raw is not None and raw == self._optimistic_state:
+                self._optimistic_state = None
+                self._optimistic_until = 0.0
+            elif now >= self._optimistic_until:
+                self._optimistic_state = None
+                self._optimistic_until = 0.0
+        super()._handle_coordinator_update()
 
     async def _send_value(self, value: bool) -> None:  # pragma: no cover - abstract
         """Send new state to the master unit. Must be implemented by subclasses."""
@@ -225,14 +275,21 @@ class MasterSwitchBase(MasterBase, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the switch on and request a refresh afterwards."""
+        self._optimistic_state = True
+        self._optimistic_until = monotonic() + self._OPTIMISTIC_WINDOW
+        self.async_write_ha_state()
         try:
             await self._send_value(True)
         except Exception as exc:  # noqa: BLE001
+            self._optimistic_state = None
+            self._optimistic_until = 0.0
+            self.async_write_ha_state()
             _LOGGER.error(
                 "MasterSwitchBase: failed to send ON value for %s: %s",
                 getattr(self, "_attr_unique_id", "?"),
                 exc,
             )
+            raise HomeAssistantError(str(exc)) from exc
 
         if self._REFRESH_DELAY > 0:
             await asyncio.sleep(self._REFRESH_DELAY)
@@ -240,14 +297,21 @@ class MasterSwitchBase(MasterBase, SwitchEntity):
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the switch off and request a refresh afterwards."""
+        self._optimistic_state = False
+        self._optimistic_until = monotonic() + self._OPTIMISTIC_WINDOW
+        self.async_write_ha_state()
         try:
             await self._send_value(False)
         except Exception as exc:  # noqa: BLE001
+            self._optimistic_state = None
+            self._optimistic_until = 0.0
+            self.async_write_ha_state()
             _LOGGER.error(
                 "MasterSwitchBase: failed to send OFF value for %s: %s",
                 getattr(self, "_attr_unique_id", "?"),
                 exc,
             )
+            raise HomeAssistantError(str(exc)) from exc
 
         if self._REFRESH_DELAY > 0:
             await asyncio.sleep(self._REFRESH_DELAY)

@@ -2,11 +2,11 @@
   "domain": "azrouter",
   "name": "A-Z Router",
   "version": "2025.12.02.1",
-  "documentation": "https://github.com/Jenik5/azrouter/blob/main/docs/installation.html",
+  "documentation": "https://github.com/Jenik5/azrouter#readme",
   "issue_tracker": "https://github.com/Jenik5/azrouter/issues",
+  "integration_type": "hub",
   "codeowners": [
-    "@Jenik5",
-    "@chatgpt"
+    "@Jenik5"
   ],
   "requirements": [],
   "config_flow": true,

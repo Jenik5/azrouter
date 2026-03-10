@@ -2,7 +2,8 @@
 # -----------------------------------------------------------
 # Main number platform:
 # - creates master number entities
-# - creates device_type_1 number entities (boiler)
+# - creates device_type_1 number entities
+# - creates device_type_4 number entities
 # - exposes service helpers for __init__.py
 # -----------------------------------------------------------
 
@@ -14,11 +15,11 @@ import copy
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 
 
-from .const import DOMAIN
 from .api import AzRouterClient
 
 from .devices.master.number import create_master_numbers
@@ -35,11 +36,22 @@ async def async_setup_entry(
 ) -> None:
     """Set up AZ Router number entities from a config entry."""
 
-    integration_data = hass.data[DOMAIN][entry.entry_id]
+    runtime_data = entry.runtime_data
+    if runtime_data is None:
+        _LOGGER.debug("number: runtime_data missing for entry %s", entry.entry_id)
+        async_add_entities([], True)
+        return
 
-    client: AzRouterClient = integration_data["client"]
-    coordinator = integration_data["coordinator"]
-    devices_list: List[Dict[str, Any]] = integration_data["devices"]
+    client: AzRouterClient = runtime_data.client
+    coordinator = runtime_data.coordinator
+    devices_list: List[Dict[str, Any]] = (
+        coordinator.data.get("devices") if coordinator.data else []
+    ) or []
+
+    try:
+        _migrate_wallbox_number_names(hass, entry, devices_list)
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.debug("number: wallbox number name migration skipped: %s", exc)
 
     entities: List[Any] = []
 
@@ -52,7 +64,7 @@ async def async_setup_entry(
         )
     )
 
-    # --- DEVICE_TYPE_1 NUMBER ENTITIES (boiler) ---
+    # --- DEVICE_TYPE_1 NUMBER ENTITIES ---
     entities.extend(
         create_device_type_1_numbers(
             client=client,
@@ -62,7 +74,7 @@ async def async_setup_entry(
         )
     )
 
-    # --- DEVICE_TYPE_4 NUMBER ENTITIES (boiler) ---
+    # --- DEVICE_TYPE_4 NUMBER ENTITIES ---
     entities.extend(
         create_device_type_4_numbers(
             client=client,
@@ -74,6 +86,50 @@ async def async_setup_entry(
 
     if entities:
         async_add_entities(entities, True)
+
+
+def _migrate_wallbox_number_names(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    devices: List[Dict[str, Any]],
+) -> None:
+    ent_reg = er.async_get(hass)
+    if not hasattr(ent_reg, "async_get_entity_id"):
+        return
+
+    host = str(entry.data.get("host", "")).strip().lower()
+    if "://" in host:
+        host = host.split("://", 1)[1]
+    router_id = host.rstrip("/")
+
+    key_to_name = {
+        "charge_manual_power": "7.1 Manual Charging Power",
+    }
+
+    for dev in devices:
+        if str(dev.get("deviceType", "")) != "4":
+            continue
+        common = dev.get("common", {}) or {}
+        dev_id = common.get("id")
+        if dev_id is None:
+            continue
+        for key, target_name in key_to_name.items():
+            unique_id = f"{router_id}_device_4_{dev_id}_{key}"
+            entity_id = ent_reg.async_get_entity_id("number", "azrouter", unique_id)
+            if not entity_id:
+                continue
+            entry_obj = ent_reg.async_get(entity_id)
+            if entry_obj is None or entry_obj.name == target_name:
+                continue
+            try:
+                ent_reg.async_update_entity(entity_id, name=target_name)
+            except Exception as exc:  # noqa: BLE001
+                _LOGGER.debug(
+                    "number: wallbox entity name migration failed for %s -> %s: %s",
+                    entity_id,
+                    target_name,
+                    exc,
+                )
 
 
 # ======================================================================
@@ -100,22 +156,17 @@ async def async_service_set_device_type_1_max_power(
     """Service helper: set power.maxPower for device_type_1."""
 
     if max_power is None:
-        _LOGGER.debug(
-            "Service set_device_type_1_max_power ignored for device %s (value is None)",
-            device_id,
+        raise ServiceValidationError(
+            f"Missing max_power for device {device_id}."
         )
-        return
 
     # clamp to valid range
     try:
         value = int(max_power)
     except Exception:
-        _LOGGER.warning(
-            "Service set_device_type_1_max_power: invalid value '%s' for device %s",
-            max_power,
-            device_id,
+        raise ServiceValidationError(
+            f"Invalid max_power '{max_power}' for device {device_id}."
         )
-        return
 
     if value < MIN_MAXPOWER:
         value = MIN_MAXPOWER
@@ -138,11 +189,9 @@ async def async_service_set_device_type_1_max_power(
             continue
 
     if not root:
-        _LOGGER.warning(
-            "Service set_device_type_1_max_power: device id=%s not found in coordinator data",
-            device_id,
+        raise ServiceValidationError(
+            f"Device {device_id} not found in coordinator data."
         )
-        return
 
     # build payload similar to DeviceType1MaxPowerNumber
     dev_payload = copy.deepcopy(root)
@@ -179,6 +228,9 @@ async def async_service_set_device_type_1_max_power(
             device_id,
             exc,
         )
+        raise HomeAssistantError(
+            f"Failed to write max power for device {device_id}: {exc}"
+        ) from exc
 
 
 async def async_service_set_device_type_1_temperatures(
@@ -208,20 +260,16 @@ async def async_service_set_device_type_1_temperatures(
             continue
 
     if not root:
-        _LOGGER.warning(
-            "Service set_device_type_1_temperatures: device id=%s not found in coordinator data",
-            device_id,
+        raise ServiceValidationError(
+            f"Device {device_id} not found in coordinator data."
         )
-        return
 
     # work on a copy so we don't mutate coordinator.data in place
     settings_src = root.get("settings") or []
     if not isinstance(settings_src, list) or not settings_src:
-        _LOGGER.warning(
-            "Service set_device_type_1_temperatures: no settings found for device %s",
-            device_id,
+        raise ServiceValidationError(
+            f"No settings found for device {device_id}."
         )
-        return
 
     settings_list = copy.deepcopy(settings_src)
 
@@ -297,6 +345,9 @@ async def async_service_set_device_type_1_temperatures(
             device_id,
             exc,
         )
+        raise HomeAssistantError(
+            f"Failed to write temperatures for device {device_id}: {exc}"
+        ) from exc
 
 # ----------------------------------------------------------------------
 #  SERVICE HELPER – device_type_4 manual charging power (mode id=1)
@@ -416,18 +467,28 @@ async def async_service_set_device_type_4_manual_power(
 
     for entry in settings_list:
         charge_settings = entry.setdefault("charge", {})
-        mode_list = charge_settings.get("mode") or []
+        mode_list = charge_settings.get("mode")
 
         if not isinstance(mode_list, list):
-            continue
+            mode_list = []
+            charge_settings["mode"] = mode_list
 
+        manual_mode = None
         for mode in mode_list:
             try:
                 if int(mode.get("id", -1)) == 1:
-                    mode["power"] = int(value)
-                    changed = True
+                    manual_mode = mode
+                    break
             except Exception:
                 continue
+
+        if manual_mode is None:
+            manual_mode = {"id": 1}
+            mode_list.append(manual_mode)
+
+        manual_mode["enabled"] = 1
+        manual_mode["power"] = int(value)
+        changed = True
 
     if not changed:
         _LOGGER.debug(

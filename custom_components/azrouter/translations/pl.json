@@ -25,6 +25,70 @@
       "name": "Boost urządzenia",
       "description": "Włącza lub wyłącza Boost dla jednego lub wielu urządzeń."
     },
+    "set_device_type_1_keep_heated": {
+      "name": "Smart Slave – 3.1 Utrzymuj nagrzanie",
+      "description": "Włącza lub wyłącza funkcję 3.1 Keep Heated (ignore_cycle) dla urządzeń Smart Slave (deviceType=1).",
+      "fields": {
+        "enabled": {
+          "name": "Włączone",
+          "description": "True = włączone, False = wyłączone."
+        }
+      }
+    },
+    "set_device_type_1_block_solar_heating": {
+      "name": "Smart Slave – 3.2 Blokuj grzanie solarne",
+      "description": "Włącza lub wyłącza funkcję 3.2 Block Solar Heating (block_solar_heating) dla urządzeń Smart Slave (deviceType=1).",
+      "fields": {
+        "enabled": {
+          "name": "Włączone",
+          "description": "True = blokuj grzanie solarne, False = zezwól na grzanie solarne."
+        }
+      }
+    },
+    "set_device_type_1_block_heating_from_battery": {
+      "name": "Smart Slave – 3.3 Blokuj grzanie z baterii",
+      "description": "Włącza lub wyłącza funkcję 3.3 Block Heating From Battery (block_heating_from_battery) dla urządzeń Smart Slave (deviceType=1).",
+      "fields": {
+        "enabled": {
+          "name": "Włączone",
+          "description": "True = blokuj grzanie z baterii, False = zezwól na grzanie z baterii."
+        }
+      }
+    },
+    "set_device_type_1_allow_solar_heating_only_in_time_window": {
+      "name": "Smart Slave – 3.4 Tylko w oknie czasowym",
+      "description": "Włącza lub wyłącza ograniczenie 3.4 Allow Solar Heating Only In Time Window dla urządzeń Smart Slave (deviceType=1).",
+      "fields": {
+        "enabled": {
+          "name": "Włączone",
+          "description": "True = zezwól na grzanie solarne tylko w skonfigurowanym oknie czasowym, False = bez ograniczenia czasowego."
+        }
+      }
+    },
+    "set_device_type_1_boost_mode": {
+      "name": "Smart Slave – 4.2 Tryb Boost",
+      "description": "Ustawia 4.2 Boost Mode dla urządzeń Smart Slave (deviceType=1).",
+      "fields": {
+        "mode": {
+          "name": "Tryb",
+          "description": "Jedna z wartości: manual, hdo, window, window+hdo."
+        }
+      }
+    },
+    "set_device_type_1_connected_phase": {
+      "name": "Smart Slave – Podłączona faza",
+      "description": "Podłącza lub odłącza wybraną fazę (1.1/1.2/1.3 Connected L1/L2/L3) dla urządzeń Smart Slave (deviceType=1).",
+      "fields": {
+        "phase": {
+          "name": "Faza",
+          "description": "Numer fazy (1, 2 lub 3)."
+        },
+        "enabled": {
+          "name": "Włączone",
+          "description": "True = faza podłączona, False = faza odłączona."
+        }
+      }
+    },
     "set_device_type_1_max_power": {
       "name": "Smart Slave – Maks. moc",
       "description": "Ustawia maksymalną dopuszczalną moc dla urządzeń Smart Slave (deviceType=1)."
@@ -32,6 +96,96 @@
     "set_device_type_1_temperatures": {
       "name": "Smart Slave – Temperatury",
       "description": "Ustawia temperaturę docelową i/lub temperaturę Boost dla urządzeń Smart Slave (deviceType=1)."
+    },
+    "set_device_type_4_block_charging": {
+      "name": "Wallbox – 1. Blokuj ładowanie",
+      "description": "Włącza lub wyłącza funkcję 1. Block Charging dla urządzeń Wallbox (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Włączone",
+          "description": "True = blokuj ładowanie, False = zezwól na ładowanie."
+        }
+      }
+    },
+    "set_device_type_4_prioritize_when_connected": {
+      "name": "Wallbox – 2. Priorytet po podłączeniu",
+      "description": "Włącza lub wyłącza funkcję 2. Prioritize When Connected (mode[0].enabled) dla urządzeń Wallbox (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Włączone",
+          "description": "True = tryb włączony, False = tryb wyłączony."
+        }
+      }
+    },
+    "set_device_type_4_block_solar_charging": {
+      "name": "Wallbox – 3. Blokuj ładowanie solarne",
+      "description": "Włącza lub wyłącza funkcję 3. Block Solar Charging dla urządzeń Wallbox (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Włączone",
+          "description": "True = blokuj ładowanie solarne, False = zezwól na ładowanie solarne."
+        }
+      }
+    },
+    "set_device_type_4_block_charging_from_battery": {
+      "name": "Wallbox – 4. Blokuj ładowanie z baterii",
+      "description": "Włącza lub wyłącza funkcję 4. Block Charging From Battery dla urządzeń Wallbox (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Włączone",
+          "description": "True = blokuj ładowanie z baterii, False = zezwól na ładowanie z baterii."
+        }
+      }
+    },
+    "set_device_type_4_allow_solar_charging_only_in_time_window": {
+      "name": "Wallbox – 6.1 Tylko w oknie czasowym",
+      "description": "Włącza lub wyłącza ograniczenie 6.1 Allow Solar Charging Only In Time Window dla urządzeń Wallbox (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Włączone",
+          "description": "True = zezwól na ładowanie solarne tylko w skonfigurowanym oknie czasowym, False = bez ograniczenia czasowego."
+        }
+      }
+    },
+    "set_device_type_4_trigger_phase": {
+      "name": "Wallbox – 5. Faza wyzwalająca",
+      "description": "Ustawia 5. Triggering Phase dla urządzeń Wallbox (deviceType=4).",
+      "fields": {
+        "phase": {
+          "name": "Faza",
+          "description": "Wybierz L1, L2 lub L3."
+        }
+      }
+    },
+    "set_device_type_4_apply_only_if_cloud_is_offline": {
+      "name": "Wallbox – 8. Tylko gdy chmura offline",
+      "description": "Włącza lub wyłącza funkcję 8. Apply Only If Cloud Is Offline dla urządzeń Wallbox (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Włączone",
+          "description": "True = stosuj tylko gdy chmura jest offline, False = stosuj zawsze."
+        }
+      }
+    },
+    "set_device_type_4_time_window_charging_enabled": {
+      "name": "Wallbox – 9.1 Ładowanie w oknie czasowym",
+      "description": "Włącza lub wyłącza tryb 9.1 Time Window Charging Enabled (mode[2].enabled) dla urządzeń Wallbox (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Włączone",
+          "description": "True = tryb włączony, False = tryb wyłączony."
+        }
+      }
+    },
+    "set_device_type_4_hdo_charging_enabled": {
+      "name": "Wallbox – 10.1 Ładowanie HDO",
+      "description": "Włącza lub wyłącza tryb 10.1 HDO Charging Enabled (mode[3].enabled) dla urządzeń Wallbox (deviceType=4).",
+      "fields": {
+        "enabled": {
+          "name": "Włączone",
+          "description": "True = tryb włączony, False = tryb wyłączony."
+        }
+      }
     },
     "set_device_type_4_manual_power": {
       "name": "Wallbox – Ręczna moc ładowania",

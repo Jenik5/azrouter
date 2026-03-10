@@ -17,7 +17,7 @@ CONF_USERNAME = "username"
 CONF_PASSWORD = "password"
 CONF_VERIFY_SSL = "verify_ssl"
 
-PLATFORMS = ["sensor", "switch", "number"]
+PLATFORMS = ["sensor", "switch", "number", "time", "select"]
 
 # -----------------------------------------------------------
 # Model names
@@ -26,7 +26,7 @@ PLATFORMS = ["sensor", "switch", "number"]
 MODEL_MASTER = "A-Z Router Smart master"
 MODEL_DEVICE_TYPE_1 = "A-Z Router Smart slave"
 MODEL_DEVICE_TYPE_4 = "A-Z Charger"
-MODEL_DEVICE_TYPE_5 = "Invertor"
+MODEL_DEVICE_TYPE_5 = "Inverter"
 MODEL_DEVICE_GENERIC = "A-Z Router Device"
 
 # -----------------------------------------------------------

@@ -7,7 +7,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
 from .devices.master import sensor as master_sensor
 from .devices.device_type_1 import sensor as device_type_1_sensor
 from .devices.device_type_4 import sensor as device_type_4_sensor
@@ -32,23 +31,12 @@ async def async_setup_entry(
     """
     _LOGGER.debug("async_setup_entry start (entry_id=%s)", entry.entry_id)
 
-    entry_data = hass.data.get(DOMAIN)
-    if not entry_data:
-        _LOGGER.debug("hass.data[%s] missing", DOMAIN)
+    runtime_data = entry.runtime_data
+    if runtime_data is None:
+        _LOGGER.debug("runtime_data missing for entry %s", entry.entry_id)
         async_add_entities([], True)
         return
-
-    bucket = entry_data.get(entry.entry_id)
-    if not bucket:
-        _LOGGER.debug("no bucket for entry_id %s", entry.entry_id)
-        async_add_entities([], True)
-        return
-
-    coordinator = bucket.get("coordinator")
-    if coordinator is None:
-        _LOGGER.debug("coordinator missing for entry %s", entry.entry_id)
-        async_add_entities([], True)
-        return
+    coordinator = runtime_data.coordinator
 
     entities: List[Any] = []
 
@@ -67,7 +55,7 @@ async def async_setup_entry(
         _LOGGER.exception("exception while creating master entities: %s", exc)
 
     # 2) device-level sensors
-    devices_list = bucket.get("devices") or bucket.get("devices_list") or []
+    devices_list = coordinator.data.get("devices") if coordinator.data else []
     if not isinstance(devices_list, (list, tuple)):
         _LOGGER.debug("devices_list is not a list/tuple -> ignoring")
         devices_list = []

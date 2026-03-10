@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Dict, List, Optional
 import logging
+import copy
 
 import aiohttp
 
@@ -126,6 +127,7 @@ class AzRouterClient:
 
     async def async_login(self) -> None:
         """Authenticate and store token."""
+        self._token = None
         payload = {"data": {"username": self._username, "password": self._password}}
         data = await self._api_post(API_LOGIN, payload)
 
@@ -136,6 +138,10 @@ class AzRouterClient:
                     self._token = val
                     _LOGGER.debug("stored auth token from '%s'", key)
                     break
+        if not self._token:
+            _LOGGER.debug(
+                "Login response did not include token, continuing with session/cookie auth"
+            )
 
     # Backwards compatible alias
     async def login(self) -> None:  # pragma: no cover
@@ -205,6 +211,16 @@ class AzRouterClient:
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
         r_power, r_status, r_devices, r_settings = results
+
+        failures = [result for result in results if isinstance(result, Exception)]
+        if len(failures) == len(results):
+            raise RuntimeError("All API endpoints failed during data update")
+        if failures:
+            _LOGGER.warning(
+                "Partial API update failure: %d/%d endpoints failed",
+                len(failures),
+                len(results),
+            )
 
         power = r_power if isinstance(r_power, dict) else {}
         status = r_status if isinstance(r_status, dict) else {}
@@ -279,6 +295,169 @@ class AzRouterClient:
             }
         }
         await self._api_post(API_DEVICE_BOOST, payload)
+
+    async def async_set_device_type_1_connected_phase(
+        self, device_id: int, phase_index: int, enabled: bool
+    ) -> None:
+        """Set a single connected phase flag for device_type_1."""
+        devices = await self.async_get_devices()
+        if not isinstance(devices, list):
+            return
+
+        root: Dict[str, Any] | None = None
+        for dev in devices:
+            try:
+                if (
+                    str(dev.get("deviceType")) == "1"
+                    and int(dev.get("common", {}).get("id", -1)) == int(device_id)
+                ):
+                    root = dev
+                    break
+            except Exception:
+                continue
+
+        if not root:
+            return
+
+        payload = copy.deepcopy(root)
+        power = payload.setdefault("power", {})
+        phases = power.get("connectedPhase")
+        if not isinstance(phases, list):
+            phases = [1, 1, 1]
+        while len(phases) < 3:
+            phases.append(1)
+
+        idx = max(0, min(2, int(phase_index)))
+        phases[idx] = 1 if enabled else 0
+        power["connectedPhase"] = list(phases)
+
+        minimal_payload: Dict[str, Any] = {
+            "deviceType": "1",
+            "common": {"id": int(device_id)},
+            "power": {"connectedPhase": list(phases)},
+        }
+        full_payload = payload
+        full_with_settings_payload = copy.deepcopy(payload)
+        settings = full_with_settings_payload.get("settings") or []
+        if isinstance(settings, list):
+            for item in settings:
+                p = item.setdefault("power", {})
+                p["connectedPhase"] = list(phases)
+
+        async def _phases_match() -> bool:
+            fresh_devices = await self.async_get_devices()
+            for dev in fresh_devices:
+                try:
+                    if (
+                        str(dev.get("deviceType")) == "1"
+                        and int(dev.get("common", {}).get("id", -1)) == int(device_id)
+                    ):
+                        current = (dev.get("power") or {}).get("connectedPhase")
+                        if isinstance(current, list) and len(current) > idx:
+                            return int(current[idx]) == (1 if enabled else 0)
+                        return False
+                except Exception:
+                    continue
+            return False
+
+        attempts = [
+            ("minimal", minimal_payload),
+            ("full", full_payload),
+            ("full+settings", full_with_settings_payload),
+        ]
+
+        for label, candidate in attempts:
+            await self.async_post_device_settings(candidate)
+            await asyncio.sleep(0.6)
+            if await _phases_match():
+                _LOGGER.debug(
+                    "connectedPhase write accepted via '%s' payload for device_id=%s phase=%s value=%s",
+                    label,
+                    device_id,
+                    idx,
+                    1 if enabled else 0,
+                )
+                return
+
+        _LOGGER.warning(
+            "connectedPhase write did not persist for device_id=%s phase=%s value=%s",
+            device_id,
+            idx,
+            1 if enabled else 0,
+        )
+
+    async def async_set_device_type_4_trigger_phase(
+        self,
+        device_id: int,
+        phase_index: int,
+    ) -> None:
+        """Set charge.triggerPhase for device_type_4."""
+        try:
+            idx = max(0, min(2, int(phase_index)))
+        except Exception:
+            _LOGGER.warning("invalid device_type_4 triggerPhase=%r", phase_index)
+            return
+
+        devices = await self.async_get_devices()
+        if not isinstance(devices, list):
+            return
+
+        root: Dict[str, Any] | None = None
+        for dev in devices:
+            try:
+                if (
+                    str(dev.get("deviceType")) == "4"
+                    and int(dev.get("common", {}).get("id", -1)) == int(device_id)
+                ):
+                    root = dev
+                    break
+            except Exception:
+                continue
+
+        if not root:
+            return
+
+        payload = copy.deepcopy(root)
+        charge = payload.setdefault("charge", {})
+        charge["triggerPhase"] = idx
+
+        minimal_payload: Dict[str, Any] = {
+            "deviceType": "4",
+            "common": {"id": int(device_id)},
+            "charge": {"triggerPhase": idx},
+        }
+
+        async def _phase_matches() -> bool:
+            fresh_devices = await self.async_get_devices()
+            for dev in fresh_devices:
+                try:
+                    if (
+                        str(dev.get("deviceType")) == "4"
+                        and int(dev.get("common", {}).get("id", -1)) == int(device_id)
+                    ):
+                        current = (dev.get("charge") or {}).get("triggerPhase")
+                        return int(current) == idx
+                except Exception:
+                    continue
+            return False
+
+        for label, candidate in (("minimal", minimal_payload), ("full", payload)):
+            await self.async_post_device_settings(candidate)
+            await asyncio.sleep(0.6)
+            if await _phase_matches():
+                _LOGGER.debug(
+                    "device_type_4 triggerPhase write accepted via '%s' payload for device_id=%s phase=%s",
+                    label,
+                    device_id,
+                    idx,
+                )
+                return
+
+        _LOGGER.warning(
+            "device_type_4 triggerPhase write did not persist for device_id=%s phase=%s",
+            device_id,
+            idx,
+        )
 
     async def async_post_device_settings(self, device_payload: Dict[str, Any]) -> None:
         payload = {"data": device_payload}

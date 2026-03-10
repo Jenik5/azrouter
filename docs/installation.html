@@ -20,27 +20,54 @@
         <div class="page-header">
             <h1>A-Z Router – instalace a základní konfigurace</h1>
             <p class="page-subtitle">
-                Návod k instalaci integrace A-Z Router do Home Assistantu pomocí HACS.
+                Návod k instalaci integrace A-Z Router do Home Assistantu pomocí HACS custom repository.
+            </p>
+        </div>
+
+        <div class="warning-banner">
+            <p>
+                <strong>Důležité migrační upozornění:</strong> Tato verze může některé entity vytvořit znovu pod novým názvem nebo s novým <code>unique_id</code>.
+                Po aktualizaci tak mohou některé staré entity zaniknout a vzniknout nové. Po upgradu zkontroluj dashboardy,
+                uživatelské panely, automatizace i helpery, které na entity A-Z Routeru odkazují.
+            </p>
+        </div>
+
+        <div class="note-banner">
+            <p>
+                <strong>Instalace přes HACS:</strong> integrace zatím není v default HACS indexu. Pokud ji HACS nenajde běžným hledáním,
+                je to očekávané chování. Přidej ji přes <strong>Custom repositories</strong> jako repozitář
+                <code>https://github.com/Jenik5/azrouter</code>.
             </p>
         </div>
 
         <div class="step">
-            <h2>Stažení z HACS</h2>
+            <h2>Instalace přes HACS (custom repository)</h2>
             <p>
-                V HACS vyhledej integraci <strong>„A-Z Router“</strong> a nainstaluj ji přímo ze Store.
-                Pokud není dostupná, lze ji přidat ručně přes vlastní repozitář.
+                Otevři <strong>HACS → Integrations</strong>, v menu zvol <strong>Custom repositories</strong> a přidej:
+            </p>
+            <p><code>https://github.com/Jenik5/azrouter</code></p>
+            <ul>
+                <li>Jako kategorii nastav <strong>Integration</strong>.</li>
+                <li>Ulož repozitář.</li>
+                <li>Pak v HACS vyhledej integraci <strong>„A-Z Router“</strong> a nainstaluj ji.</li>
+            </ul>
+            <img src="img/azrouter_hacs_04.png" alt="Přidání vlastního repozitáře v HACS">
+        </div>
+
+        <div class="step">
+            <h2>Vyhledání a instalace integrace</h2>
+            <p>
+                Po přidání custom repository se integrace objeví v seznamu HACS integrací a půjde nainstalovat standardním způsobem.
             </p>
             <img src="img/azrouter_hacs_01.png" alt="Integrace A-Z Router v HACS Store">
         </div>
 
         <div class="step">
-            <h2>Alternativní instalace</h2>
+            <h2>Manuální instalace</h2>
             <p>
-                Pokud se integrace neobjeví ve Store, je možné ji přidat ručně přes sekci
-                <strong>Repositáře</strong> v HACS – přidáním GitHub repozitáře, ve kterém je integrace
-                <code>azrouter</code> umístěna.
+                Pokud HACS nepoužíváš, zkopíruj obsah složky <code>custom_components/azrouter</code> do Home Assistant konfigurace
+                do adresáře <code>/config/custom_components/azrouter</code> a restartuj Home Assistant.
             </p>
-            <img src="img/azrouter_hacs_04.png" alt="Přidání vlastního repozitáře v HACS">
         </div>
 
         <div class="step">

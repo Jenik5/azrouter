@@ -64,26 +64,22 @@ class DeviceBase(BaseEntity):
         common = device.get("common", {}) if isinstance(device, dict) else {}
         self._device_id = common.get("id")
         self._router = SimpleNamespace(
-            serial_number=entry.entry_id,
+            serial_number=self._router_id,
         )
         self._device_cfg = SimpleNamespace(
             id=common.get("id"),
             name=common.get("name", f"device-{common.get('id', '?')}"),
             type=common.get("type"),
         )
+        self._device_type = str(device.get("deviceType", "unknown"))
 
         dev_id = self._device_cfg.id
         if dev_id is not None:
-            self._attr_unique_id = f"{entry.entry_id}_device_{dev_id}_{key}"
+            self._attr_unique_id = (
+                f"{self._router_id}_device_{self._device_type}_{dev_id}_{key}"
+            )
         else:
-            self._attr_unique_id = f"{entry.entry_id}_device_X_{key}"
-
-        from homeassistant.util import slugify
-
-        name_slug = slugify(self._device_cfg.name or f"device_{dev_id}")
-        dev_id_str = str(dev_id) if dev_id is not None else "X"
-        object_id = f"{name_slug}_id_{dev_id_str}_{key}"
-        self.entity_id = f"sensor.{object_id}"
+            self._attr_unique_id = f"{self._router_id}_device_{self._device_type}_X_{key}"
 
     @property
     def router(self):
@@ -103,7 +99,10 @@ class DeviceBase(BaseEntity):
 
         return DeviceInfo(
             identifiers={
-                (DOMAIN, f"{self._router.serial_number}_device_{self._device_cfg.id}")
+                (
+                    DOMAIN,
+                    f"{self._router.serial_number}_device_{self._device_type}_{self._device_cfg.id}",
+                )
             },
             name=self._device_cfg.name,
             manufacturer="A-Z Traders",
@@ -118,8 +117,16 @@ class DeviceBase(BaseEntity):
         dev = None
         for d in devices:
             try:
-                cid = d.get("common", {}).get("id")
-                if cid == self._device_id:
+                dtype = str(d.get("deviceType", "unknown"))
+                cid_raw = d.get("common", {}).get("id")
+                try:
+                    cid = int(cid_raw)
+                    self_id = int(self._device_id)
+                    id_match = cid == self_id
+                except Exception:
+                    id_match = str(cid_raw) == str(self._device_id)
+
+                if id_match and dtype == self._device_type:
                     dev = d
                     break
             except Exception:
@@ -175,11 +182,11 @@ class MasterBase(BaseEntity):
     @property
     def device_info(self) -> DeviceInfo:
         """Device registry entry for the master unit."""
-        ident = f"{self._entry.entry_id}_master"
+        ident = f"{self._router_id}_master"
 
         return DeviceInfo(
             identifiers={(DOMAIN, ident)},
-            name="_Master_",
+            name="Master",
             manufacturer="A-Z Traders",
             model="A-Z Router Smart master",
         )

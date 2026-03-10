@@ -1,6 +1,6 @@
 # custom_components/azrouter/devices/device_type_1/number.py
 # -----------------------------------------------------------
-# Number entities for deviceType=1 (Smart Slave / boiler)
+# Number entities for deviceType=1 (Smart Slave / boiler-like heater)
 # - Target temperature
 # - Boost target temperature
 # - Max power (power.maxPower + settings[*].power.max)
@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 import logging
 import asyncio
 import copy
+from time import monotonic
 
 from homeassistant.components.number import NumberEntity, NumberMode
 from homeassistant.const import UnitOfTemperature, UnitOfPower
@@ -22,7 +23,7 @@ from homeassistant.helpers.entity import EntityCategory
 
 from ...api import AzRouterClient
 from ...const import MODEL_DEVICE_TYPE_1
-from ..number import DeviceNumberBase  # ← nově používáme DeviceNumberBase
+from ..number import DeviceNumberBase
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ def create_device_type_1_numbers(
                 device=dev,
                 device_id=dev_id,
                 key="power_target_temperature",
-                name=f"{dev_name} Target Temp.",
+                name="2.1 Target Temperature",
             )
         )
 
@@ -88,7 +89,7 @@ def create_device_type_1_numbers(
                 device=dev,
                 device_id=dev_id,
                 key="power_target_temperature_boost",
-                name=f"{dev_name} Bst Target Temp.",
+                name="2.2 Boost Target Temperature",
             )
         )
 
@@ -101,7 +102,7 @@ def create_device_type_1_numbers(
                 device=dev,
                 device_id=dev_id,
                 key="power_max",
-                name=f"{dev_name} Max Power",
+                name="1. Max Power",
             )
         )
 
@@ -119,6 +120,7 @@ class DeviceType1TempBase(DeviceNumberBase):
     _attr_native_step = STEP_TEMP
 
     _DEBOUNCE_SECONDS = 2.0
+    _WRITE_GRACE_SECONDS = 6.0
 
     # set in subclasses
     _setting_key: str = ""
@@ -249,7 +251,6 @@ class DeviceType1TempBase(DeviceNumberBase):
         First update self._value from coordinator.data, then let base class
         handle CoordinatorEntity logic.
         """
-        self._update_from_coordinator()
         super()._handle_coordinator_update()
 
     # ---------------------------------------------------------------------
@@ -265,6 +266,9 @@ class DeviceType1TempBase(DeviceNumberBase):
         int_val = self._clamp(int(round(value)))
         self._value = int_val
         self._pending_value = int_val
+        self._suppress_coordinator_until = (
+            monotonic() + self._DEBOUNCE_SECONDS + self._WRITE_GRACE_SECONDS
+        )
         self.async_write_ha_state()
 
         # cancel previous task if running
@@ -307,6 +311,10 @@ class DeviceType1TempBase(DeviceNumberBase):
                 )
 
                 await self._client.async_post_device_settings(dev_payload)
+                self._suppress_coordinator_until = max(
+                    self._suppress_coordinator_until,
+                    monotonic() + self._WRITE_GRACE_SECONDS,
+                )
 
             except asyncio.CancelledError:
                 _LOGGER.debug(
@@ -315,6 +323,7 @@ class DeviceType1TempBase(DeviceNumberBase):
                     self._device_id,
                 )
             except Exception as exc:
+                self._suppress_coordinator_until = 0.0
                 _LOGGER.warning(
                     "Failed to send device_type_1 %s (id=%s): %s",
                     self._setting_key,
@@ -353,6 +362,7 @@ class DeviceType1MaxPowerNumber(DeviceNumberBase):
     _attr_native_step = STEP_MAXPOWER
 
     _DEBOUNCE_SECONDS = 2.0
+    _WRITE_GRACE_SECONDS = 6.0
 
     def __init__(
         self,
@@ -450,7 +460,6 @@ class DeviceType1MaxPowerNumber(DeviceNumberBase):
         await super().async_will_remove_from_hass()
 
     def _handle_coordinator_update(self) -> None:
-        self._update_from_coordinator()
         super()._handle_coordinator_update()
 
     # ------- Number API -------
@@ -463,6 +472,9 @@ class DeviceType1MaxPowerNumber(DeviceNumberBase):
         int_val = self._clamp(int(round(value)))
         self._value = int_val
         self._pending_value = int_val
+        self._suppress_coordinator_until = (
+            monotonic() + self._DEBOUNCE_SECONDS + self._WRITE_GRACE_SECONDS
+        )
         self.async_write_ha_state()
 
         if self._debounce_task and not self._debounce_task.done():
@@ -509,6 +521,10 @@ class DeviceType1MaxPowerNumber(DeviceNumberBase):
                 )
 
                 await self._client.async_post_device_settings(dev_payload)
+                self._suppress_coordinator_until = max(
+                    self._suppress_coordinator_until,
+                    monotonic() + self._WRITE_GRACE_SECONDS,
+                )
 
             except asyncio.CancelledError:
                 _LOGGER.debug(
@@ -516,6 +532,7 @@ class DeviceType1MaxPowerNumber(DeviceNumberBase):
                     self._device_id,
                 )
             except Exception as exc:
+                self._suppress_coordinator_until = 0.0
                 _LOGGER.warning(
                     "MaxPower: failed to send (id=%s): %s",
                     self._device_id,
@@ -523,5 +540,6 @@ class DeviceType1MaxPowerNumber(DeviceNumberBase):
                 )
 
         self._debounce_task = self.hass.loop.create_task(_send_later())
+
 
 # End Of File

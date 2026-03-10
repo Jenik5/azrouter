@@ -24,6 +24,7 @@ from __future__ import annotations
 from typing import Optional, Any
 import asyncio
 import logging
+from time import monotonic
 
 from homeassistant.components.number import NumberEntity
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -52,6 +53,7 @@ class DeviceNumberBase(DeviceBase, NumberEntity):
 
     # Default debounce delay in seconds before sending value to the device
     _DEBOUNCE_SECONDS: float = 2.0
+    _WRITE_GRACE_SECONDS: float = 6.0
 
     def __init__(
         self,
@@ -89,6 +91,7 @@ class DeviceNumberBase(DeviceBase, NumberEntity):
         # Debounce state: pending value + scheduled task
         self._pending_value: Optional[float] = None
         self._debounce_task: Optional[asyncio.Task] = None
+        self._suppress_coordinator_until: float = 0.0
 
         if debounce_seconds is not None:
             self._DEBOUNCE_SECONDS = float(debounce_seconds)
@@ -161,14 +164,16 @@ class DeviceNumberBase(DeviceBase, NumberEntity):
           1) refresh self._value from coordinator.data,
           2) let the parent update the rest of the entity state.
         """
-        try:
-            self._update_from_coordinator()
-        except Exception as exc:  # noqa: BLE001
-            _LOGGER.debug(
-                "%s: _update_from_coordinator failed on coordinator update: %s",
-                self.__class__.__name__,
-                exc,
-            )
+        now = monotonic()
+        if now >= self._suppress_coordinator_until:
+            try:
+                self._update_from_coordinator()
+            except Exception as exc:  # noqa: BLE001
+                _LOGGER.debug(
+                    "%s: _update_from_coordinator failed on coordinator update: %s",
+                    self.__class__.__name__,
+                    exc,
+                )
         super()._handle_coordinator_update()
         self.async_write_ha_state()
 
@@ -216,6 +221,9 @@ class DeviceNumberBase(DeviceBase, NumberEntity):
 
         self._value = new_value
         self._pending_value = new_value
+        self._suppress_coordinator_until = (
+            monotonic() + self._DEBOUNCE_SECONDS + self._WRITE_GRACE_SECONDS
+        )
         self.async_write_ha_state()
 
         # Cancel previous pending send, if any
@@ -236,6 +244,10 @@ class DeviceNumberBase(DeviceBase, NumberEntity):
                     getattr(self, "entity_id", None),
                 )
                 await self._async_send_value(send_value)
+                self._suppress_coordinator_until = max(
+                    self._suppress_coordinator_until,
+                    monotonic() + self._WRITE_GRACE_SECONDS,
+                )
 
             except asyncio.CancelledError:
                 _LOGGER.debug(
@@ -244,6 +256,7 @@ class DeviceNumberBase(DeviceBase, NumberEntity):
                     getattr(self, "entity_id", None),
                 )
             except Exception as exc:  # noqa: BLE001
+                self._suppress_coordinator_until = 0.0
                 _LOGGER.warning(
                     "%s: failed to send value for entity_id=%s: %s",
                     self.__class__.__name__,

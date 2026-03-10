@@ -6,5 +6,9 @@
 !/docs/
 !/docs/**
 !/README.md
+!/CHANGELOG.md
 !/LICENSE
 !/hacs.json
+!/.github/
+!/.github/workflows/
+!/.github/workflows/**

@@ -4,6 +4,7 @@ from typing import List, Optional
 
 import logging
 import asyncio
+from time import monotonic
 
 from homeassistant.components.number import (
     NumberEntity,
@@ -51,6 +52,7 @@ class AzRouterMasterTargetPowerNumber(MasterBase, NumberEntity):
     _attr_native_step = 10
 
     _DEBOUNCE_SECONDS = 2.0  # po kolika sekundách nečinnosti se pošle POST
+    _WRITE_GRACE_SECONDS = 6.0
 
     def __init__(
         self,
@@ -75,6 +77,7 @@ class AzRouterMasterTargetPowerNumber(MasterBase, NumberEntity):
         # debounce stav
         self._pending_value: Optional[int] = None
         self._debounce_task: asyncio.Task | None = None
+        self._suppress_coordinator_until: float = 0.0
 
         self._attr_icon = "mdi:flash"
 
@@ -107,6 +110,9 @@ class AzRouterMasterTargetPowerNumber(MasterBase, NumberEntity):
         # uložíme si ji jako aktuální i pending
         self._value = int_value
         self._pending_value = int_value
+        self._suppress_coordinator_until = (
+            monotonic() + self._DEBOUNCE_SECONDS + self._WRITE_GRACE_SECONDS
+        )
         self.async_write_ha_state()
 
         # zrušíme případný předchozí plánovaný POST
@@ -123,9 +129,14 @@ class AzRouterMasterTargetPowerNumber(MasterBase, NumberEntity):
                     self._pending_value,
                 )
                 await self._client.async_set_master_target_power(self._pending_value)
+                self._suppress_coordinator_until = max(
+                    self._suppress_coordinator_until,
+                    monotonic() + self._WRITE_GRACE_SECONDS,
+                )
             except asyncio.CancelledError:
                 _LOGGER.debug("Debounced send cancelled")
             except Exception as exc:
+                self._suppress_coordinator_until = 0.0
                 _LOGGER.warning(
                     "Failed to send Master target_power_w: %s", exc
                 )
@@ -155,8 +166,8 @@ class AzRouterMasterTargetPowerNumber(MasterBase, NumberEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Zareaguje na cyklický update koordinátoru."""
-        self._update_from_coordinator()
+        if monotonic() >= self._suppress_coordinator_until:
+            self._update_from_coordinator()
         super()._handle_coordinator_update()
         self.async_write_ha_state()
-
 

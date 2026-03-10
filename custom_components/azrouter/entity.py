@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 from typing import Any, Optional
+from urllib.parse import urlparse
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -37,8 +38,9 @@ class BaseEntity(CoordinatorEntity):
     ) -> None:
         super().__init__(coordinator)
         self._entry = entry
+        self._router_id = self._build_router_id()
         self._attr_name = name
-        self._attr_unique_id = f"{entry.entry_id}_{key}"
+        self._attr_unique_id = f"{self._router_id}_{key}"
         self._device_key = device_key
 
         if unit is not None:
@@ -51,17 +53,18 @@ class BaseEntity(CoordinatorEntity):
         # state_class for sensors - concrete classes set this if needed
         self._state_class = None
 
+    def _build_router_id(self) -> str:
+        """Build stable router ID from configured host."""
+        host = str(self._entry.data.get("host", "")).strip()
+        parsed = urlparse(host if "://" in host else f"http://{host}")
+        netloc = (parsed.netloc or parsed.path or "unknown").rstrip("/").lower()
+        return netloc
+
     @property
     def device_info(self) -> DeviceInfo:
-        mac = None
-        try:
-            mac = self.coordinator.hass.data[DOMAIN][self._entry.entry_id].get("mac")
-        except Exception:
-            pass
-
-        ident = f"{self._entry.entry_id}"
+        ident = f"{self._router_id}"
         if self._device_key:
-            ident = f"{self._entry.entry_id}_{self._device_key}"
+            ident = f"{self._router_id}_{self._device_key}"
 
         info: DeviceInfo = {
             "identifiers": {(DOMAIN, ident)},
@@ -69,7 +72,5 @@ class BaseEntity(CoordinatorEntity):
             "name": "A-Z Router" + (f" - {self._device_key.capitalize()}" if self._device_key else ""),
             "model": "A-Z Router Smart",
         }
-        if mac:
-            info["connections"] = {("mac", mac)}
         return info
 # End Of File
