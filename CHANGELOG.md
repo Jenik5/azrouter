@@ -4,6 +4,12 @@
 
 > 🔴 **Important migration warning / Dulezite migracni upozorneni:** This update can recreate some entities with new names or unique IDs. Old entities can disappear and new ones can be created. After upgrade, review dashboards, custom panels, automations, and helpers that reference AZ Router entities.
 
+## 2026.04.03.1 - 2026-04-03
+
+### Changed
+- Preserved the last known endpoint data during partial AZ Router API failures instead of replacing failed sections with empty payloads.
+- This prevents transient `unavailable` states for device entities when only one endpoint, such as `/api/v1/devices`, times out briefly.
+
 ## 2026.03.23.1 - 2026-03-23
 
 ### Changed

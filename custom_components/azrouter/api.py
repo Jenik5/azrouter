@@ -51,6 +51,10 @@ class AzRouterClient:
         self._password = password or ""
         self._verify_ssl = verify_ssl
         self._token: Optional[str] = None
+        self._last_power: Dict[str, Any] | None = None
+        self._last_status: Dict[str, Any] | None = None
+        self._last_devices: List[Dict[str, Any]] | None = None
+        self._last_settings: Dict[str, Any] | None = None
 
     # -------------------------------------------------------------------------
     # Interní pomocné metody
@@ -221,10 +225,37 @@ class AzRouterClient:
                 len(results),
             )
 
-        power = r_power if isinstance(r_power, dict) else {}
-        status = r_status if isinstance(r_status, dict) else {}
-        devices = r_devices if isinstance(r_devices, list) else []
-        settings = r_settings if isinstance(r_settings, dict) else {}
+        if isinstance(r_power, dict):
+            power = r_power
+            self._last_power = copy.deepcopy(r_power)
+        elif isinstance(r_power, Exception) and self._last_power is not None:
+            power = copy.deepcopy(self._last_power)
+        else:
+            power = {}
+
+        if isinstance(r_status, dict):
+            status = r_status
+            self._last_status = copy.deepcopy(r_status)
+        elif isinstance(r_status, Exception) and self._last_status is not None:
+            status = copy.deepcopy(self._last_status)
+        else:
+            status = {}
+
+        if isinstance(r_devices, list):
+            devices = r_devices
+            self._last_devices = copy.deepcopy(r_devices)
+        elif isinstance(r_devices, Exception) and self._last_devices is not None:
+            devices = copy.deepcopy(self._last_devices)
+        else:
+            devices = []
+
+        if isinstance(r_settings, dict):
+            settings = r_settings
+            self._last_settings = copy.deepcopy(r_settings)
+        elif isinstance(r_settings, Exception) and self._last_settings is not None:
+            settings = copy.deepcopy(self._last_settings)
+        else:
+            settings = {}
 
         # flatten helper
         def _flatten(obj: Any, base: str, out: list) -> None:
