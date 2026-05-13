@@ -12,3 +12,27 @@
 !/.github/
 !/.github/workflows/
 !/.github/workflows/**
+
+# Development artifacts
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+.venv/
+venv/
+.env
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.orig
+*.bak

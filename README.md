@@ -1,7 +1,7 @@
-# <img src="https://raw.githubusercontent.com/Jenik5/azrouter/main/custom_components/azrouter/icons/logo.png" height="60" />
+# <img src="https://raw.githubusercontent.com/Jenik5/azrouter/main/custom_components/azrouter/brand/logo.png" height="60" />
 # AZ Router – Home Assistant Integration
 
-[![HACS Custom Repository](https://img.shields.io/badge/HACS-Custom%20Repository-orange.svg)](https://www.hacs.xyz/docs/faq/custom_repositories/)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://www.hacs.xyz/)
 ![Version](https://img.shields.io/github/v/release/Jenik5/azrouter)
 ![Downloads](https://img.shields.io/github/downloads/Jenik5/azrouter/total)
 ![License](https://img.shields.io/github/license/Jenik5/azrouter?style=flat&v=1)
@@ -104,17 +104,15 @@ These are the same credentials you use to log into the AZ Router web interface.
 
 ---
 
-## Installation via HACS (custom repository for now)
+## Installation via HACS
 
-At the moment, the integration is **not listed in the default HACS store index**, so direct search in the store may not find it. Install it as a **custom repository**:
+The integration is available in the default HACS store:
 
 1. Open **HACS → Integrations**
-2. Open the menu and choose **Custom repositories**
-3. Add `https://github.com/Jenik5/azrouter`
-4. Set category to **Integration**
-5. Install the integration
-6. Restart Home Assistant
-7. Add the integration in **Settings → Devices & Services**
+2. Search for **A-Z Router**
+3. Open the integration and install it
+4. Restart Home Assistant
+5. Add the integration in **Settings → Devices & Services**
 
 ---
 
@@ -158,7 +156,7 @@ Issues and payload samples are welcome on GitHub.
 
 # 🇨🇿 Česky – AZ Router – Home Assistant Integrace
 
-[![HACS Custom Repository](https://img.shields.io/badge/HACS-Custom%20Repository-orange.svg)](https://www.hacs.xyz/docs/faq/custom_repositories/)
+[![HACS Default](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://www.hacs.xyz/)
 ![Version](https://img.shields.io/github/v/release/Jenik5/azrouter)
 ![Downloads](https://img.shields.io/github/downloads/Jenik5/azrouter/total)
 ![License](https://img.shields.io/github/license/Jenik5/azrouter)
@@ -259,17 +257,15 @@ Jsou to stejné údaje, které používáte pro přístup do webového rozhraní
 
 ---
 
-## Instalace přes HACS (zatím jako custom repository)
+## Instalace přes HACS
 
-Integrace momentálně **není zařazená v defaultním HACS indexu**, takže přímé hledání ve Store ji nemusí najít. Instalace proto zatím probíhá jako **custom repository**:
+Integrace je dostupná v defaultním HACS katalogu:
 
 1. Otevřete **HACS → Integrace**
-2. V menu zvolte **Custom repositories**
-3. Přidejte `https://github.com/Jenik5/azrouter`
-4. Nastavte kategorii **Integration**
-5. Integraci nainstalujte
-6. Restartujte Home Assistant
-7. Přidejte integraci v **Nastavení → Zařízení a služby**
+2. Vyhledejte **A-Z Router**
+3. Otevřete detail integrace a nainstalujte ji
+4. Restartujte Home Assistant
+5. Přidejte integraci v **Nastavení → Zařízení a služby**
 
 ---
 
