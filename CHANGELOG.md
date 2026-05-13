@@ -4,6 +4,14 @@
 
 > 🔴 **Important migration warning / Dulezite migracni upozorneni:** This update can recreate some entities with new names or unique IDs. Old entities can disappear and new ones can be created. After upgrade, review dashboards, custom panels, automations, and helpers that reference AZ Router entities.
 
+## 2026.05.13.1 - 2026-05-13
+
+### Changed
+- Updated the repository documentation to describe installation from the default HACS catalog instead of the old custom repository flow.
+- Pointed README branding assets to `custom_components/azrouter/brand/` and removed obsolete duplicate files from `custom_components/azrouter/icons/`.
+- Consolidated repository ignore rules into the root `.gitignore`.
+- Raised the minimum Home Assistant version in `hacs.json` to `2026.3.0`.
+
 ## 2026.04.03.1 - 2026-04-03
 
 ### Changed
